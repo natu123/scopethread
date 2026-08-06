@@ -12,6 +12,8 @@ Agent-run observability is implemented locally. Every valid analysis receives a 
 
 Short-lived public demo sessions are implemented, and migration `0002_demo_session_access.sql` is verified on the live CockroachDB cluster. Each browser session receives an opaque bearer token, while CockroachDB stores only its SHA-256 hash. The API verifies the token, project ownership, expiry, and an atomic per-session analysis allowance before invoking Bedrock. API Gateway route throttling provides an additional coarse abuse-control layer. The AWS stack has not been deployed yet.
 
+Authenticated memory inspection is implemented locally. The browser reloads project-scoped items and links from CockroachDB, so active decisions, superseded decisions, source quotes, rationales, and revision chains survive a page reload instead of depending on temporary browser state.
+
 ## Design Documents
 
 - [MVP requirements](docs/REQUIREMENTS.md)
@@ -149,6 +151,7 @@ Structured records remain authoritative. Vector similarity is used to find conte
 - [x] Define the database schema and memory lifecycle.
 - [x] Build one end-to-end memory workflow locally.
 - [x] Add conflict detection and next-question generation.
+- [x] Restore persisted project memory and revision history after page reload.
 - [ ] Deploy the functional demo on AWS.
 - [ ] Verify security, observability, and failure handling.
 - [ ] Record a public demo video under three minutes.

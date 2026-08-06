@@ -86,6 +86,12 @@ Resources:
             ApiId: !Ref HttpApi
             Method: POST
             Path: /sessions
+        InspectMemory:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /memory
         Analyze:
           Type: HttpApi
           Properties:

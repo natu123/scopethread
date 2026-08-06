@@ -3,6 +3,7 @@ import type {
   AnalyzeConversationRequest,
   ConfirmRevisionRequest,
   DemoSession,
+  ProjectMemorySnapshot,
   RevisionOutcome,
   StoredMemory,
 } from "./models.js";
@@ -77,4 +78,8 @@ export interface DemoSessionRepository {
     projectId: string;
     consumeAnalysisRequest: boolean;
   }): Promise<DemoSessionAuthorization>;
+}
+
+export interface MemoryInspectionRepository {
+  inspectProjectMemory(projectId: string): Promise<ProjectMemorySnapshot | null>;
 }

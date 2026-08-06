@@ -58,12 +58,20 @@ if (
 
 const revisionEvent = apiFunction.Properties?.Events?.ConfirmRevision;
 const sessionEvent = apiFunction.Properties?.Events?.CreateSession;
+const memoryEvent = apiFunction.Properties?.Events?.InspectMemory;
 if (
   sessionEvent?.Type !== "HttpApi" ||
   sessionEvent.Properties?.Method !== "POST" ||
   sessionEvent.Properties?.Path !== "/sessions"
 ) {
   throw new Error("The Lambda must expose POST /sessions through HTTP API.");
+}
+if (
+  memoryEvent?.Type !== "HttpApi" ||
+  memoryEvent.Properties?.Method !== "GET" ||
+  memoryEvent.Properties?.Path !== "/memory"
+) {
+  throw new Error("The Lambda must expose GET /memory through HTTP API.");
 }
 if (
   revisionEvent?.Type !== "HttpApi" ||

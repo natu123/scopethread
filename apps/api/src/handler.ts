@@ -20,6 +20,8 @@ import {
   ConfirmRevisionError,
   ConfirmRevisionRequestSchema,
   type DemoSessionRepository,
+  InspectProjectMemoryRequestSchema,
+  type MemoryInspectionRepository,
 } from "@scopethread/core";
 import { CockroachMemoryRepository, getPool } from "@scopethread/database";
 
@@ -165,12 +167,14 @@ export type HandlerDependencies = {
   getAnalyzeUseCase: () => Promise<Pick<AnalyzeConversation, "execute">>;
   getRevisionUseCase: () => Promise<Pick<ConfirmRevision, "execute">>;
   getSessionRepository: () => Promise<DemoSessionRepository>;
+  getMemoryInspectionRepository: () => Promise<MemoryInspectionRepository>;
 };
 
 const defaultDependencies: HandlerDependencies = {
   getAnalyzeUseCase,
   getRevisionUseCase,
   getSessionRepository: getRepository,
+  getMemoryInspectionRepository: getRepository,
 };
 
 async function authorizeDemoRequest(
@@ -307,6 +311,67 @@ async function handleRequest(
       return json(502, {
         error: "DEMO_SESSION_FAILED",
         message: "A demo session could not be created.",
+      });
+    }
+  }
+
+  if (method === "GET" && path === "/memory") {
+    const requestId = event.requestContext.requestId;
+    try {
+      const request = InspectProjectMemoryRequestSchema.parse({
+        projectId: event.queryStringParameters?.projectId,
+      });
+      const authorization = await authorizeDemoRequest(
+        event,
+        request.projectId,
+        false,
+        dependencies,
+      );
+      if (!authorization.authorized) {
+        return authorization.response;
+      }
+      const snapshot = await (
+        await dependencies.getMemoryInspectionRepository()
+      ).inspectProjectMemory(request.projectId);
+      if (!snapshot) {
+        return json(404, {
+          error: "PROJECT_MEMORY_NOT_FOUND",
+          message: "Project memory was not found.",
+        });
+      }
+      console.info(
+        JSON.stringify({
+          event: "project_memory_read",
+          requestId,
+          projectId: request.projectId,
+          itemCount: snapshot.items.length,
+          linkCount: snapshot.links.length,
+        }),
+      );
+      return json(200, { mode: "project-memory", ...snapshot });
+    } catch (error) {
+      if (isRequestError(error)) {
+        return json(400, {
+          error: "INVALID_REQUEST",
+          message: "A valid projectId query parameter is required.",
+        });
+      }
+      if (error instanceof ConfigurationError) {
+        return json(503, {
+          error: "SERVICE_NOT_CONFIGURED",
+          message: error.message,
+        });
+      }
+      console.error(
+        JSON.stringify({
+          event: "project_memory_failed",
+          requestId,
+          category: error instanceof Error ? error.name : "UnknownError",
+        }),
+      );
+      return json(502, {
+        error: "PROJECT_MEMORY_FAILED",
+        message: "Project memory could not be loaded.",
       });
     }
   }

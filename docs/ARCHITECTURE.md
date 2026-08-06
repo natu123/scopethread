@@ -85,6 +85,13 @@ This separation keeps both CockroachDB integrations meaningful:
 4. The transaction stores an explicit revision edge between the two decisions.
 5. Lambda returns the updated decision chain.
 
+### Inspect persisted memory
+
+1. The browser sends its bearer token and project ID to `GET /memory`.
+2. Lambda verifies that the unexpired session owns the project without consuming an analysis allowance.
+3. CockroachDB returns project-scoped memory items and links, including source quotes and revision reasons.
+4. The browser derives current counts and reconstructs the latest supersession chain from the persisted snapshot.
+
 ## Data Boundaries
 
 The detailed schema will be defined separately, but the MVP needs these logical records:

@@ -8,6 +8,10 @@ import { createHandler, handler, type HandlerDependencies } from "./handler";
 
 const demoToken = "a".repeat(43);
 
+const getEmptyMemoryInspectionRepository = async () => ({
+  inspectProjectMemory: async () => null,
+});
+
 function event(method: string, rawPath: string, body?: string) {
   return {
     rawPath,
@@ -45,6 +49,7 @@ function handlerWithRevision(
         remainingAnalysisRequests: 5,
       }),
     }),
+    getMemoryInspectionRepository: getEmptyMemoryInspectionRepository,
   };
   return createHandler(dependencies);
 }
@@ -155,6 +160,7 @@ describe("API handler", () => {
         createDemoSession,
         authorizeDemoRequest: async () => ({ status: "unauthorized" }),
       }),
+      getMemoryInspectionRepository: getEmptyMemoryInspectionRepository,
     };
 
     const response = (await createHandler(dependencies)(
@@ -183,6 +189,7 @@ describe("API handler", () => {
         createDemoSession: vi.fn(),
         authorizeDemoRequest: async () => ({ status: "rate_limited" }),
       }),
+      getMemoryInspectionRepository: getEmptyMemoryInspectionRepository,
     };
     const limitedHandler = createHandler(dependencies);
 
@@ -214,6 +221,7 @@ describe("API handler", () => {
         createDemoSession: vi.fn(),
         authorizeDemoRequest: async () => ({ status: "unauthorized" }),
       }),
+      getMemoryInspectionRepository: getEmptyMemoryInspectionRepository,
     };
 
     const response = (await createHandler(dependencies)(
@@ -233,6 +241,62 @@ describe("API handler", () => {
       "DEMO_SESSION_INVALID",
     );
     expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("returns authenticated project memory without consuming analysis quota", async () => {
+    const inspectProjectMemory = vi.fn().mockResolvedValue({
+      projectId: "10000000-0000-4000-8000-000000000002",
+      projectName: "Aozora Dental Clinic",
+      items: [
+        {
+          id: "10000000-0000-4000-8000-000000000004",
+          projectId: "10000000-0000-4000-8000-000000000002",
+          sourceConversationId: "10000000-0000-4000-8000-000000000003",
+          kind: "decision",
+          status: "active",
+          content: "Do not include online booking.",
+          rationale: null,
+          sourceQuote: "Booking is not needed for launch.",
+          createdAt: "2026-08-06T03:00:00.000Z",
+        },
+      ],
+      links: [],
+    });
+    const authorizeDemoRequest = vi.fn().mockResolvedValue({
+      status: "authorized",
+      remainingAnalysisRequests: 5,
+    });
+    const dependencies: HandlerDependencies = {
+      getAnalyzeUseCase: async () => ({ execute: vi.fn() }),
+      getRevisionUseCase: async () => ({ execute: vi.fn() }),
+      getSessionRepository: async () => ({
+        createDemoSession: vi.fn(),
+        authorizeDemoRequest,
+      }),
+      getMemoryInspectionRepository: async () => ({ inspectProjectMemory }),
+    };
+    const input = event("GET", "/memory");
+    input.queryStringParameters = {
+      projectId: "10000000-0000-4000-8000-000000000002",
+    };
+
+    const response = (await createHandler(dependencies)(
+      input,
+    )) as APIGatewayProxyStructuredResultV2;
+    const payload = JSON.parse(response.body ?? "{}");
+
+    expect(response.statusCode).toBe(200);
+    expect(payload).toMatchObject({
+      mode: "project-memory",
+      projectName: "Aozora Dental Clinic",
+    });
+    expect(payload.items).toHaveLength(1);
+    expect(authorizeDemoRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ consumeAnalysisRequest: false }),
+    );
+    expect(inspectProjectMemory).toHaveBeenCalledWith(
+      "10000000-0000-4000-8000-000000000002",
+    );
   });
 
   it("returns a configuration error before external calls", async () => {

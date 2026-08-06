@@ -490,3 +490,79 @@ describe("CockroachMemoryRepository demo sessions", () => {
     ).resolves.toEqual({ status: "unauthorized" });
   });
 });
+
+describe("CockroachMemoryRepository memory inspection", () => {
+  it("returns project-scoped memory items and revision links", async () => {
+    const query = vi.fn(async (text: string, values: unknown[]) => {
+      const sql = statement(text);
+      expect(values).toEqual([projectId]);
+      if (sql.startsWith("SELECT name")) {
+        return { rowCount: 1, rows: [{ name: "Aozora Dental Clinic" }] };
+      }
+      if (sql.startsWith("SELECT id, project_id")) {
+        return {
+          rowCount: 1,
+          rows: [
+            {
+              id: priorMemoryId,
+              project_id: projectId,
+              source_conversation_id: conversationId,
+              kind: "decision",
+              status: "superseded",
+              content: "Do not include online booking.",
+              rationale: "Launch scope changed.",
+              source_quote: "Booking is not needed.",
+              created_at: revisedAt,
+            },
+          ],
+        };
+      }
+      return {
+        rowCount: 1,
+        rows: [
+          {
+            id: "10000000-0000-4000-8000-000000000007",
+            from_memory_id: replacementMemoryId,
+            to_memory_id: priorMemoryId,
+            relation: "supersedes",
+            reason: "Launch scope changed.",
+            created_at: revisedAt,
+          },
+        ],
+      };
+    });
+    const repository = new CockroachMemoryRepository({ query } as unknown as Pool);
+
+    await expect(repository.inspectProjectMemory(projectId)).resolves.toEqual({
+      projectId,
+      projectName: "Aozora Dental Clinic",
+      items: [
+        expect.objectContaining({
+          id: priorMemoryId,
+          status: "superseded",
+          sourceQuote: "Booking is not needed.",
+          createdAt: revisedAt.toISOString(),
+        }),
+      ],
+      links: [
+        expect.objectContaining({
+          fromMemoryId: replacementMemoryId,
+          toMemoryId: priorMemoryId,
+          relation: "supersedes",
+          createdAt: revisedAt.toISOString(),
+        }),
+      ],
+    });
+    expect(query).toHaveBeenCalledTimes(3);
+  });
+
+  it("returns null when the scoped project no longer exists", async () => {
+    const query = vi.fn(async (text: string) => ({
+      rowCount: 0,
+      rows: statement(text).startsWith("SELECT name") ? [] : [],
+    }));
+    const repository = new CockroachMemoryRepository({ query } as unknown as Pool);
+
+    await expect(repository.inspectProjectMemory(projectId)).resolves.toBeNull();
+  });
+});

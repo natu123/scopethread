@@ -63,6 +63,10 @@ export const ConfirmRevisionRequestSchema = z.object({
   reason: z.string().trim().min(3).max(2000),
 });
 
+export const InspectProjectMemoryRequestSchema = z.object({
+  projectId: z.uuid(),
+});
+
 export type StoredMemory = z.infer<typeof StoredMemorySchema>;
 export type AnalysisResult = z.infer<typeof AnalysisResultSchema>;
 export type AnalyzeConversationRequest = z.infer<
@@ -92,4 +96,24 @@ export type DemoSession = {
   };
   expiresAt: string;
   maxAnalysisRequests: number;
+};
+
+export type ProjectMemoryItem = StoredMemory & {
+  sourceQuote: string;
+};
+
+export type ProjectMemoryLink = {
+  id: string;
+  fromMemoryId: string;
+  toMemoryId: string;
+  relation: "supersedes" | "supports" | "conflicts_with";
+  reason: string | null;
+  createdAt: string;
+};
+
+export type ProjectMemorySnapshot = {
+  projectId: string;
+  projectName: string;
+  items: ProjectMemoryItem[];
+  links: ProjectMemoryLink[];
 };

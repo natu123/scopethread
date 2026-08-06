@@ -55,6 +55,35 @@ type DemoSession = {
   maxAnalysisRequests: number;
 };
 
+type ProjectMemoryItem = {
+  id: string;
+  projectId: string;
+  sourceConversationId: string;
+  kind: "requirement" | "decision" | "rationale" | "open_question";
+  status: "proposed" | "active" | "superseded" | "resolved" | "dismissed";
+  content: string;
+  rationale: string | null;
+  sourceQuote: string;
+  createdAt: string;
+};
+
+type ProjectMemoryLink = {
+  id: string;
+  fromMemoryId: string;
+  toMemoryId: string;
+  relation: "supersedes" | "supports" | "conflicts_with";
+  reason: string | null;
+  createdAt: string;
+};
+
+type ProjectMemorySnapshot = {
+  mode: "project-memory";
+  projectId: string;
+  projectName: string;
+  items: ProjectMemoryItem[];
+  links: ProjectMemoryLink[];
+};
+
 const sessionStorageKey = "scopethread.demo-session.v1";
 
 function storedSession(): DemoSession | null {
@@ -83,6 +112,28 @@ function storedSession(): DemoSession | null {
   }
 }
 
+async function requestProjectMemory(
+  activeSession: DemoSession,
+): Promise<ProjectMemorySnapshot> {
+  const response = await fetch(
+    `${apiBaseUrl}/memory?projectId=${encodeURIComponent(activeSession.projectId)}`,
+    {
+      headers: { authorization: `Bearer ${activeSession.token}` },
+    },
+  );
+  const payload = (await response.json()) as
+    | ProjectMemorySnapshot
+    | AnalyzeErrorResponse;
+  if (!response.ok || !("items" in payload)) {
+    throw new Error(
+      "message" in payload && payload.message
+        ? payload.message
+        : "Project memory could not be loaded.",
+    );
+  }
+  return payload;
+}
+
 export function App() {
   const [session, setSession] = useState<DemoSession | null>(null);
   const [sessionStatus, setSessionStatus] = useState<
@@ -105,6 +156,12 @@ export function App() {
   const [remainingAnalysisRequests, setRemainingAnalysisRequests] = useState<
     number | null
   >(null);
+  const [memorySnapshot, setMemorySnapshot] =
+    useState<ProjectMemorySnapshot | null>(null);
+  const [memoryStatus, setMemoryStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+  const [memoryError, setMemoryError] = useState<string | null>(null);
 
   useEffect(() => {
     const existing = storedSession();
@@ -155,6 +212,51 @@ export function App() {
 
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+    let active = true;
+    setMemoryStatus("loading");
+    setMemoryError(null);
+    void requestProjectMemory(session)
+      .then((snapshot) => {
+        if (active) {
+          setMemorySnapshot(snapshot);
+          setMemoryStatus("ready");
+        }
+      })
+      .catch((caught) => {
+        if (active) {
+          setMemoryStatus("error");
+          setMemoryError(
+            caught instanceof Error
+              ? caught.message
+              : "Project memory could not be loaded.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [session]);
+
+  async function refreshProjectMemory(activeSession: DemoSession) {
+    try {
+      const snapshot = await requestProjectMemory(activeSession);
+      setMemorySnapshot(snapshot);
+      setMemoryStatus("ready");
+      setMemoryError(null);
+    } catch (caught) {
+      setMemoryStatus("error");
+      setMemoryError(
+        caught instanceof Error
+          ? caught.message
+          : "Project memory could not be refreshed.",
+      );
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -209,6 +311,7 @@ export function App() {
       setRunId(payload.runId);
       setRemainingAnalysisRequests(payload.remainingAnalysisRequests);
       setStatus("success");
+      await refreshProjectMemory(session);
     } catch (caught) {
       setStatus("error");
       setError(
@@ -266,6 +369,7 @@ export function App() {
 
       setRevision(payload);
       setRevisionStatus("success");
+      await refreshProjectMemory(session);
     } catch (caught) {
       setRevisionStatus("error");
       setRevisionError(
@@ -277,8 +381,51 @@ export function App() {
   }
 
   const conflict = result?.conflicts[0];
+  const bootstrapMemory: ProjectMemoryItem[] = session
+    ? [
+        {
+          id: session.initialDecision.id,
+          projectId: session.projectId,
+          sourceConversationId: "bootstrap",
+          kind: "decision",
+          status: "active",
+          content: session.initialDecision.content,
+          rationale: session.initialDecision.rationale,
+          sourceQuote: session.initialDecision.sourceQuote,
+          createdAt: session.expiresAt,
+        },
+      ]
+    : [];
+  const memoryItems = memorySnapshot?.items ?? bootstrapMemory;
+  const memoryLinks = memorySnapshot?.links ?? [];
+  const activeDecisionCount = memoryItems.filter(
+    (item) => item.kind === "decision" && item.status === "active",
+  ).length;
+  const requirementCount = memoryItems.filter(
+    (item) => item.kind === "requirement" && item.status !== "dismissed",
+  ).length;
+  const openQuestionCount = memoryItems.filter(
+    (item) => item.kind === "open_question" && item.status !== "resolved",
+  ).length;
+  const revisionCount = memoryLinks.filter(
+    (link) => link.relation === "supersedes",
+  ).length;
+  const latestRevisionLink = memoryLinks
+    .filter((link) => link.relation === "supersedes")
+    .at(-1);
+  const revisionPrior = memoryItems.find(
+    (item) => item.id === latestRevisionLink?.toMemoryId,
+  );
+  const revisionReplacement = memoryItems.find(
+    (item) => item.id === latestRevisionLink?.fromMemoryId,
+  );
   const originalDecision =
-    session?.initialDecision.content ?? "Loading the demo decision...";
+    revisionPrior?.content ??
+    session?.initialDecision.content ??
+    "Loading the demo decision...";
+  const hasStoredRevision = Boolean(
+    latestRevisionLink && revisionPrior && revisionReplacement,
+  );
   const nextQuestion =
     conflict?.confirmationQuestion ?? result?.nextQuestions[0] ?? null;
 
@@ -317,45 +464,52 @@ export function App() {
                   {session?.projectName ?? "Preparing project memory"}
                 </h2>
               </div>
-              <span className="status-pill">1 active decision</span>
+              <span className="status-pill">
+                {activeDecisionCount} active decision
+                {activeDecisionCount === 1 ? "" : "s"}
+              </span>
             </div>
 
-            <article
-              className={`memory-card${revision ? " memory-card--superseded" : ""}`}
-            >
-              <div className="memory-meta">
-                <span>Decision</span>
-                <span>{revision ? "Superseded" : "Active"}</span>
-              </div>
-              <p>{originalDecision}</p>
-              <small>
-                Source: {session?.initialDecision.sourceQuote ?? "Loading evidence..."}
-              </small>
-            </article>
-
-            {revision && conflict ? (
-              <article className="memory-card memory-card--replacement">
+            {memoryItems.map((item) => (
+              <article
+                className={`memory-card${
+                  item.status === "superseded"
+                    ? " memory-card--superseded"
+                    : item.status === "active" && item.id !== session?.initialDecision.id
+                      ? " memory-card--replacement"
+                      : ""
+                }`}
+                key={item.id}
+              >
                 <div className="memory-meta">
-                  <span>Decision</span>
-                  <span>Active</span>
+                  <span>{item.kind.replace("_", " ")}</span>
+                  <span>{item.status}</span>
                 </div>
-                <p>{conflict.newStatement}</p>
-                <small>Reason: {revision.reason}</small>
+                <p>{item.content}</p>
+                {item.rationale ? <small>Reason: {item.rationale}</small> : null}
+                <small>Source: {item.sourceQuote}</small>
               </article>
+            ))}
+
+            {memoryStatus === "loading" ? (
+              <p className="memory-note">Refreshing CockroachDB memory...</p>
+            ) : null}
+            {memoryError ? (
+              <p className="form-error" role="alert">{memoryError}</p>
             ) : null}
 
             <dl className="project-facts">
               <div>
                 <dt>Requirements</dt>
-                <dd>0</dd>
+                <dd>{requirementCount}</dd>
               </div>
               <div>
                 <dt>Open questions</dt>
-                <dd>0</dd>
+                <dd>{openQuestionCount}</dd>
               </div>
               <div>
                 <dt>Revisions</dt>
-                <dd>{revision ? 1 : 0}</dd>
+                <dd>{revisionCount}</dd>
               </div>
             </dl>
           </aside>
@@ -407,6 +561,8 @@ export function App() {
           >
             {revision
               ? "Revision confirmed"
+              : hasStoredRevision && !result
+                ? "Stored revision"
               : status === "loading"
               ? "Analyzing"
               : conflict
@@ -418,19 +574,30 @@ export function App() {
           <div>
             <p className="eyebrow">Agent analysis</p>
             <h2 id="result-title">
-              {result?.summary ?? "Submit new client evidence to search project memory."}
+              {result?.summary ??
+                (hasStoredRevision
+                  ? "The current decision supersedes an earlier client choice."
+                  : "Submit new client evidence to search project memory.")}
             </h2>
             <p className="evidence-link">
               {result?.retrievedEvidenceIds.length
                 ? `Grounded in ${result.retrievedEvidenceIds.length} stored memory record(s).`
-                : "No stored evidence has been retrieved yet."}
+                : hasStoredRevision
+                  ? "Loaded from persisted CockroachDB revision history."
+                  : "No stored evidence has been retrieved yet."}
             </p>
           </div>
           <div className="question-card">
-            <span>{revision ? "Decision revision" : "Next question"}</span>
+            <span>
+              {revision || (hasStoredRevision && !result)
+                ? "Decision revision"
+                : "Next question"}
+            </span>
             <p>
               {revision
                 ? revision.reason
+                : hasStoredRevision && !result
+                  ? latestRevisionLink?.reason ?? "No revision reason was recorded."
                 : nextQuestion ?? "The next grounded question will appear here."}
             </p>
           </div>
@@ -467,13 +634,13 @@ export function App() {
               ) : null}
             </form>
           ) : null}
-          {revision && conflict ? (
+          {(revision && conflict) || hasStoredRevision ? (
             <div className="revision-chain" aria-label="Decision revision chain">
               <span>Superseded decision</span>
               <p>{originalDecision}</p>
               <span aria-hidden="true">↓</span>
               <span>Active replacement</span>
-              <p>{conflict.newStatement}</p>
+              <p>{revisionReplacement?.content ?? conflict?.newStatement}</p>
             </div>
           ) : null}
           <p className="preview-note">

@@ -3,7 +3,10 @@ import type {
   ConfirmRevisionResult,
   DemoSessionAuthorization,
   DemoSessionRepository,
+  MemoryInspectionRepository,
   MemoryRepository,
+  ProjectMemoryItem,
+  ProjectMemoryLink,
   RevisionRepository,
 } from "@scopethread/core";
 import type { Pool } from "pg";
@@ -31,16 +34,43 @@ type SessionAuthorizationRow = {
   remaining_analysis_requests: string | number;
 };
 
+type ProjectRow = { name: string };
+
+type ProjectMemoryItemRow = {
+  id: string;
+  project_id: string;
+  source_conversation_id: string;
+  kind: ProjectMemoryItem["kind"];
+  status: ProjectMemoryItem["status"];
+  content: string;
+  rationale: string | null;
+  source_quote: string;
+  created_at: Date | string;
+};
+
+type ProjectMemoryLinkRow = {
+  id: string;
+  from_memory_id: string;
+  to_memory_id: string;
+  relation: ProjectMemoryLink["relation"];
+  reason: string | null;
+  created_at: Date | string;
+};
+
 function toIsoTimestamp(value: Date | string): string {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) {
-    throw new Error("CockroachDB returned an invalid revision timestamp.");
+    throw new Error("CockroachDB returned an invalid timestamp.");
   }
   return date.toISOString();
 }
 
 export class CockroachMemoryRepository
-  implements MemoryRepository, RevisionRepository, DemoSessionRepository
+  implements
+    MemoryRepository,
+    RevisionRepository,
+    DemoSessionRepository,
+    MemoryInspectionRepository
 {
   constructor(private readonly pool: Pool) {}
 
@@ -222,6 +252,72 @@ export class CockroachMemoryRepository
     return sessionResult.rowCount === 1
       ? { status: "rate_limited" }
       : { status: "unauthorized" };
+  }
+
+  async inspectProjectMemory(projectId: string) {
+    const [projectResult, itemsResult, linksResult] = await Promise.all([
+      this.pool.query<ProjectRow>(
+        `SELECT name
+         FROM projects
+         WHERE id = $1`,
+        [projectId],
+      ),
+      this.pool.query<ProjectMemoryItemRow>(
+        `SELECT id,
+                project_id,
+                source_conversation_id,
+                kind,
+                status,
+                content,
+                rationale,
+                source_quote,
+                created_at
+         FROM memory_items
+         WHERE project_id = $1
+         ORDER BY created_at, id`,
+        [projectId],
+      ),
+      this.pool.query<ProjectMemoryLinkRow>(
+        `SELECT id,
+                from_memory_id,
+                to_memory_id,
+                relation,
+                reason,
+                created_at
+         FROM memory_links
+         WHERE project_id = $1
+         ORDER BY created_at, id`,
+        [projectId],
+      ),
+    ]);
+    const project = projectResult.rows[0];
+    if (!project) {
+      return null;
+    }
+
+    return {
+      projectId,
+      projectName: project.name,
+      items: itemsResult.rows.map((item) => ({
+        id: item.id,
+        projectId: item.project_id,
+        sourceConversationId: item.source_conversation_id,
+        kind: item.kind,
+        status: item.status,
+        content: item.content,
+        rationale: item.rationale,
+        sourceQuote: item.source_quote,
+        createdAt: toIsoTimestamp(item.created_at),
+      })),
+      links: linksResult.rows.map((link) => ({
+        id: link.id,
+        fromMemoryId: link.from_memory_id,
+        toMemoryId: link.to_memory_id,
+        relation: link.relation,
+        reason: link.reason,
+        createdAt: toIsoTimestamp(link.created_at),
+      })),
+    };
   }
 
   async startAgentRun(
