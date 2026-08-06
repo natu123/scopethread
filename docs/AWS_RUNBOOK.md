@@ -145,3 +145,19 @@ npm run aws:store-runtime-secret -- --apply
 ```
 
 The script uses the AWS SDK rather than placing the connection string in command-line arguments. It refuses root, requires `scopethread-dev` in Singapore, writes only the fixed `/scopethread/prod/database-url` parameter as a Standard `SecureString`, and verifies only non-secret metadata. The value is never printed.
+
+## Run the Public Demo E2E
+
+After the SAM stack and static web application are deployed, verify the dry gate:
+
+```powershell
+npm run e2e:public-demo -- --stack-name scopethread
+```
+
+After explicit approval, run the paid live scenario:
+
+```powershell
+npm run e2e:public-demo -- --stack-name scopethread --apply
+```
+
+The script obtains the API and CloudFront targets only from the named CloudFormation stack. It verifies the CloudFront security headers, API readiness, a short-lived demo session, initial memory restoration, Nova conflict detection grounded in the seeded CockroachDB decision, revision confirmation, and the persisted `supersedes` chain after reloading memory. It never prints the session token.
