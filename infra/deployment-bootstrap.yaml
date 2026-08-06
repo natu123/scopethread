@@ -1,0 +1,272 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ScopeThread least-privilege deployment roles and artifact storage.
+
+Parameters:
+  DevelopmentUserName:
+    Type: String
+    Default: scopethread-dev
+    AllowedValues:
+      - scopethread-dev
+  ApplicationStackName:
+    Type: String
+    Default: scopethread
+    AllowedValues:
+      - scopethread
+
+Resources:
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+
+  ApiFunctionExecutionRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RoleName: scopethread-lambda-execution
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ScopeThreadLambdaRuntime
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: WriteFunctionLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ApplicationStackName}-*:log-stream:*"
+              - Sid: WriteXRayTelemetry
+                Effect: Allow
+                Action:
+                  - xray:PutTelemetryRecords
+                  - xray:PutTraceSegments
+                Resource: "*"
+              - Sid: ReadRuntimeDatabaseParameter
+                Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/scopethread/prod/database-url"
+              - Sid: InvokeEmbeddingModel
+                Effect: Allow
+                Action: bedrock:InvokeModel
+                Resource: !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/cohere.embed-multilingual-v3"
+              - Sid: InvokeChatModel
+                Effect: Allow
+                Action: bedrock:InvokeModel
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/global.amazon.nova-2-lite-v1:0"
+                  - !Sub "arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-2-lite-v1:0"
+
+  CloudFormationExecutionRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RoleName: scopethread-cloudformation-execution
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ScopeThreadCloudFormationExecution
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: PassOnlyScopeThreadLambdaRole
+                Effect: Allow
+                Action: iam:PassRole
+                Resource: !GetAtt ApiFunctionExecutionRole.Arn
+                Condition:
+                  StringEquals:
+                    iam:PassedToService: lambda.amazonaws.com
+              - Sid: ManageScopeThreadLambda
+                Effect: Allow
+                Action:
+                  - lambda:AddPermission
+                  - lambda:CreateFunction
+                  - lambda:DeleteFunction
+                  - lambda:GetFunction
+                  - lambda:GetFunctionConfiguration
+                  - lambda:GetPolicy
+                  - lambda:ListTags
+                  - lambda:PublishVersion
+                  - lambda:RemovePermission
+                  - lambda:TagResource
+                  - lambda:UntagResource
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                Resource: !Sub "arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${ApplicationStackName}-*"
+              - Sid: ManageScopeThreadLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:DeleteLogGroup
+                  - logs:DescribeLogGroups
+                  - logs:ListTagsForResource
+                  - logs:PutRetentionPolicy
+                  - logs:TagResource
+                  - logs:UntagResource
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ApplicationStackName}-*"
+              - Sid: ManageScopeThreadBuckets
+                Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:DeleteBucket
+                  - s3:DeleteBucketPolicy
+                  - s3:GetBucketPolicy
+                  - s3:GetBucketTagging
+                  - s3:GetBucketVersioning
+                  - s3:GetEncryptionConfiguration
+                  - s3:GetLifecycleConfiguration
+                  - s3:GetBucketPublicAccessBlock
+                  - s3:ListBucket
+                  - s3:PutBucketPolicy
+                  - s3:PutBucketTagging
+                  - s3:PutBucketVersioning
+                  - s3:PutEncryptionConfiguration
+                  - s3:PutLifecycleConfiguration
+                  - s3:PutBucketPublicAccessBlock
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ApplicationStackName}-*"
+              - Sid: ManageScopeThreadBucketObjects
+                Effect: Allow
+                Action:
+                  - s3:DeleteObject
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${ApplicationStackName}-*/*"
+              - Sid: ReadDeploymentArtifacts
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                Resource: !Sub "${ArtifactBucket.Arn}/*"
+              - Sid: ManageScopeThreadHttpApi
+                Effect: Allow
+                Action: apigateway:*
+                Resource: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/apis*"
+              - Sid: ManageScopeThreadCloudFront
+                Effect: Allow
+                Action:
+                  - cloudfront:CreateDistribution
+                  - cloudfront:CreateOriginAccessControl
+                  - cloudfront:CreateResponseHeadersPolicy
+                  - cloudfront:DeleteDistribution
+                  - cloudfront:DeleteOriginAccessControl
+                  - cloudfront:DeleteResponseHeadersPolicy
+                  - cloudfront:GetDistribution
+                  - cloudfront:GetDistributionConfig
+                  - cloudfront:GetOriginAccessControl
+                  - cloudfront:GetResponseHeadersPolicy
+                  - cloudfront:ListTagsForResource
+                  - cloudfront:TagResource
+                  - cloudfront:UntagResource
+                  - cloudfront:UpdateDistribution
+                  - cloudfront:UpdateOriginAccessControl
+                  - cloudfront:UpdateResponseHeadersPolicy
+                Resource: "*"
+
+  DevelopmentDeploymentPolicy:
+    Type: AWS::IAM::Policy
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      PolicyName: ScopeThreadDeployment
+      Users:
+        - !Ref DevelopmentUserName
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ReadScopeThreadStacks
+            Effect: Allow
+            Action:
+              - cloudformation:DescribeChangeSet
+              - cloudformation:DescribeStackEvents
+              - cloudformation:DescribeStacks
+              - cloudformation:ListStackResources
+            Resource:
+              - !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/scopethread/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/scopethread-bootstrap/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:changeSet/samcli-deploy*/*"
+          - Sid: InspectScopeThreadTemplate
+            Effect: Allow
+            Action: cloudformation:GetTemplateSummary
+            Resource: "*"
+          - Sid: DeployOnlyScopeThreadStack
+            Effect: Allow
+            Action: cloudformation:CreateChangeSet
+            Resource:
+              - !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/scopethread/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:changeSet/samcli-deploy*/*"
+            Condition:
+              StringEquals:
+                cloudformation:RoleArn: !GetAtt CloudFormationExecutionRole.Arn
+          - Sid: ExecuteScopeThreadChangeSet
+            Effect: Allow
+            Action:
+              - cloudformation:DeleteChangeSet
+              - cloudformation:ExecuteChangeSet
+            Resource: !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:changeSet/samcli-deploy*/*"
+          - Sid: PassOnlyScopeThreadCloudFormationRole
+            Effect: Allow
+            Action: iam:PassRole
+            Resource: !GetAtt CloudFormationExecutionRole.Arn
+            Condition:
+              StringEquals:
+                iam:PassedToService: cloudformation.amazonaws.com
+          - Sid: ReadArtifactBucket
+            Effect: Allow
+            Action:
+              - s3:GetBucketLocation
+              - s3:ListBucket
+            Resource: !GetAtt ArtifactBucket.Arn
+          - Sid: ManageArtifactObjects
+            Effect: Allow
+            Action:
+              - s3:DeleteObject
+              - s3:GetObject
+              - s3:PutObject
+            Resource: !Sub "${ArtifactBucket.Arn}/*"
+          - Sid: PublishScopeThreadWebBucket
+            Effect: Allow
+            Action:
+              - s3:DeleteObject
+              - s3:GetObject
+              - s3:ListBucket
+              - s3:PutObject
+            Resource:
+              - !Sub "arn:${AWS::Partition}:s3:::${ApplicationStackName}-webbucket-*"
+              - !Sub "arn:${AWS::Partition}:s3:::${ApplicationStackName}-webbucket-*/*"
+          - Sid: InvalidateScopeThreadCloudFront
+            Effect: Allow
+            Action: cloudfront:CreateInvalidation
+            Resource: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/*"
+
+Outputs:
+  ArtifactBucketName:
+    Value: !Ref ArtifactBucket
+  CloudFormationExecutionRoleArn:
+    Value: !GetAtt CloudFormationExecutionRole.Arn
+  ApiFunctionExecutionRoleArn:
+    Value: !GetAtt ApiFunctionExecutionRole.Arn

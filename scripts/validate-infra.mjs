@@ -2,6 +2,10 @@ import { readFile } from "node:fs/promises";
 import { parseDocument } from "yaml";
 
 const templatePath = new URL("../infra/template.yaml", import.meta.url);
+const deploymentBootstrapPath = new URL(
+  "../infra/deployment-bootstrap.yaml",
+  import.meta.url,
+);
 const developmentPolicyPath = new URL(
   "../infra/iam/scopethread-bedrock-development-policy.json",
   import.meta.url,
@@ -16,6 +20,14 @@ if (document.errors.length > 0) {
 }
 
 const template = document.toJS();
+const deploymentBootstrapSource = await readFile(deploymentBootstrapPath, "utf8");
+const deploymentBootstrapDocument = parseDocument(deploymentBootstrapSource);
+if (deploymentBootstrapDocument.errors.length > 0) {
+  throw new Error(
+    `Invalid deployment bootstrap YAML:\n${deploymentBootstrapDocument.errors.map((error) => error.message).join("\n")}`,
+  );
+}
+const deploymentBootstrap = deploymentBootstrapDocument.toJS();
 const requiredResources = [
   "HttpApi",
   "ApiFunction",
@@ -40,6 +52,15 @@ if (apiFunction.Properties?.CodeUri !== "..") {
 
 if (apiFunction.Properties?.Handler !== "apps/api/src/handler.handler") {
   throw new Error("The Lambda handler must resolve from the monorepo root.");
+}
+
+if (
+  apiFunction.Properties?.Role !== "ApiFunctionRoleArn" ||
+  apiFunction.Properties?.Policies
+) {
+  throw new Error(
+    "The application stack must use the pre-created Lambda role without generating IAM policies.",
+  );
 }
 
 if (
@@ -233,6 +254,109 @@ for (const action of forbiddenDevelopmentActions) {
   }
 }
 
+for (const resource of [
+  "ArtifactBucket",
+  "ApiFunctionExecutionRole",
+  "CloudFormationExecutionRole",
+  "DevelopmentDeploymentPolicy",
+]) {
+  if (!deploymentBootstrap.Resources?.[resource]) {
+    throw new Error(`Missing deployment bootstrap resource: ${resource}`);
+  }
+}
+
+const artifactBucket = deploymentBootstrap.Resources.ArtifactBucket;
+if (
+  artifactBucket.Properties?.VersioningConfiguration?.Status !== "Enabled" ||
+  artifactBucket.Properties?.BucketEncryption?.ServerSideEncryptionConfiguration?.[0]
+    ?.ServerSideEncryptionByDefault?.SSEAlgorithm !== "AES256" ||
+  !Object.values(
+    artifactBucket.Properties?.PublicAccessBlockConfiguration ?? {},
+  ).every((value) => value === true)
+) {
+  throw new Error(
+    "The deployment artifact bucket must be encrypted, versioned, and private.",
+  );
+}
+
+const lambdaExecutionRole =
+  deploymentBootstrap.Resources.ApiFunctionExecutionRole;
+const cloudFormationExecutionRole =
+  deploymentBootstrap.Resources.CloudFormationExecutionRole;
+const deploymentPolicy =
+  deploymentBootstrap.Resources.DevelopmentDeploymentPolicy;
+const lambdaTrust =
+  lambdaExecutionRole.Properties?.AssumeRolePolicyDocument?.Statement ?? [];
+const cloudFormationTrust =
+  cloudFormationExecutionRole.Properties?.AssumeRolePolicyDocument?.Statement ?? [];
+if (
+  lambdaTrust.length !== 1 ||
+  lambdaTrust[0]?.Principal?.Service !== "lambda.amazonaws.com" ||
+  cloudFormationTrust.length !== 1 ||
+  cloudFormationTrust[0]?.Principal?.Service !==
+    "cloudformation.amazonaws.com"
+) {
+  throw new Error("Deployment roles must trust only their intended AWS service.");
+}
+
+const cloudFormationStatements =
+  cloudFormationExecutionRole.Properties?.Policies?.[0]?.PolicyDocument
+    ?.Statement ?? [];
+const cloudFormationActions = cloudFormationStatements.flatMap((statement) =>
+  Array.isArray(statement.Action) ? statement.Action : [statement.Action],
+);
+for (const forbiddenAction of [
+  "iam:*",
+  "iam:AttachRolePolicy",
+  "iam:CreateRole",
+  "iam:PutRolePolicy",
+]) {
+  if (cloudFormationActions.includes(forbiddenAction)) {
+    throw new Error(
+      `CloudFormation execution role contains forbidden IAM access: ${forbiddenAction}`,
+    );
+  }
+}
+const passLambdaRole = cloudFormationStatements.find(
+  (statement) => statement.Sid === "PassOnlyScopeThreadLambdaRole",
+);
+if (
+  passLambdaRole?.Action !== "iam:PassRole" ||
+  passLambdaRole?.Condition?.StringEquals?.["iam:PassedToService"] !==
+    "lambda.amazonaws.com"
+) {
+  throw new Error("CloudFormation may pass only the fixed Lambda execution role.");
+}
+
+const developerStatements =
+  deploymentPolicy.Properties?.PolicyDocument?.Statement ?? [];
+const passCloudFormationRole = developerStatements.find(
+  (statement) => statement.Sid === "PassOnlyScopeThreadCloudFormationRole",
+);
+const deployStack = developerStatements.find(
+  (statement) => statement.Sid === "DeployOnlyScopeThreadStack",
+);
+if (
+  passCloudFormationRole?.Action !== "iam:PassRole" ||
+  passCloudFormationRole?.Condition?.StringEquals?.["iam:PassedToService"] !==
+    "cloudformation.amazonaws.com" ||
+  deployStack?.Condition?.StringEquals?.["cloudformation:RoleArn"] === undefined
+) {
+  throw new Error(
+    "Development deployment access must require the fixed CloudFormation role.",
+  );
+}
+
+for (const output of [
+  "ArtifactBucketName",
+  "CloudFormationExecutionRoleArn",
+  "ApiFunctionExecutionRoleArn",
+]) {
+  if (!deploymentBootstrap.Outputs?.[output]?.Value) {
+    throw new Error(`Missing deployment bootstrap output: ${output}`);
+  }
+}
+
 console.log(
-  "Infrastructure template, log retention, web security headers, and scoped Bedrock development policy are valid.",
+  "Infrastructure templates, fixed deployment roles, log retention, web security headers, and scoped development policies are valid.",
 );

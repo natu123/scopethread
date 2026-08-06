@@ -3,6 +3,10 @@ Transform: AWS::Serverless-2016-10-31
 Description: ScopeThread hackathon MVP infrastructure.
 
 Parameters:
+  ApiFunctionRoleArn:
+    Type: String
+    AllowedPattern: ^arn:aws:iam::[0-9]{12}:role/scopethread-lambda-execution$
+    ConstraintDescription: Must be the dedicated ScopeThread Lambda execution role ARN.
   DatabaseUrlParameterName:
     Type: String
     Default: /scopethread/prod/database-url
@@ -73,6 +77,7 @@ Resources:
     Properties:
       CodeUri: ..
       Handler: apps/api/src/handler.handler
+      Role: !Ref ApiFunctionRoleArn
       Events:
         Health:
           Type: HttpApi
@@ -110,19 +115,6 @@ Resources:
             ApiId: !Ref HttpApi
             Method: POST
             Path: /conflicts/dismiss
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action:
-                - bedrock:InvokeModel
-              Resource:
-                - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/cohere.embed-multilingual-v3"
-                - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/global.amazon.nova-2-lite-v1:0"
-                - !Sub "arn:${AWS::Partition}:bedrock:*::foundation-model/amazon.nova-2-lite-v1:0"
-            - Effect: Allow
-              Action:
-                - ssm:GetParameter
-              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DatabaseUrlParameterName}"
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

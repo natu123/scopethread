@@ -73,6 +73,20 @@ npm run sam:check
 
 This command is local-only. It does not deploy resources or call AWS services.
 
+Deployment uses two guarded stages. The one-time bootstrap creates a private,
+versioned artifact bucket plus dedicated CloudFormation and Lambda roles. The
+application deployer then requires `scopethread-dev`, the fixed bootstrap
+outputs, and the fixed `scopethread` stack:
+
+```powershell
+npm run aws:bootstrap-deployment
+npm run aws:deploy
+```
+
+Both commands are local dry gates unless `--apply` is supplied after explicit
+approval. The bootstrap is the only stage that requires the root profile and
+logs it out after the operation; application deployment refuses root.
+
 The browser requires a configured `VITE_API_BASE_URL` before it submits an analysis request. It does not simulate a successful agent response when the API is unavailable.
 
 ## Repository Structure
@@ -87,6 +101,8 @@ packages/
   database/            CockroachDB pool, vector retrieval, and migration
 infra/
   template.yaml        AWS SAM infrastructure
+  deployment-bootstrap.yaml
+                       Retained deployment bucket and dedicated IAM roles
   iam/                 Scoped development IAM policy
 docs/
   REQUIREMENTS.md      MVP requirements and acceptance criteria

@@ -149,6 +149,8 @@ The exact DDL remains subject to verification against the selected CockroachDB C
 - Apply API Gateway throttling to every route and a stricter limit to session creation.
 - Store the CockroachDB connection string as a standard Parameter Store `SecureString`; Lambda retrieves it once per cold start and never logs it.
 - Restrict Lambda IAM permissions to the selected Bedrock models and required AWS resources.
+- Bootstrap a dedicated CloudFormation service role and Lambda execution role once; allow `scopethread-dev` to pass only the fixed CloudFormation role for the fixed application stack.
+- Keep SAM artifacts in a private, encrypted, versioned bucket and prohibit direct root deployment of the application stack.
 - Apply API request-size limits, throttling, and basic abuse controls before making the demo public.
 - Reject POST bodies larger than 16 KiB before session authorization, database access, or Bedrock invocation.
 - Attach CloudFront response headers for CSP, HSTS, clickjacking prevention, MIME sniffing prevention, and referrer control.
@@ -206,6 +208,7 @@ scopethread/
 - Migration `0003_runtime_role.sql` is applied on the live cluster. The `scopethread_runtime` role is verified as `NOLOGIN`, its six-table grant set matches the least-privilege design, and the built-in `public` role no longer has public-schema `CREATE`.
 - The live `scopethread_app` login inherits only `scopethread_runtime`; a real runtime connection verifies its identity, table privileges, schema boundary, and read access. Its connection string is stored as the fixed Parameter Store Standard `SecureString`; metadata verification excludes the encrypted value.
 - The `ScopeThreadBedrockDevelopment` inline policy is applied to `scopethread-dev`. The AWS copy matches the repository JSON, and IAM simulation verifies the fixed SSM parameter and selected Bedrock model allows plus denials for unrelated resources and administrative actions.
+- The guarded deployment bootstrap and application deployer are implemented locally. Both templates pass SAM lint, the Lambda bundle builds with its pre-created execution-role parameter, and live bootstrap and deployment remain explicit gates.
 
 Cloud mutations and paid model invocations require an explicit execution gate. The live vector-memory script also verifies its AWS caller and refuses root credentials.
 
@@ -217,4 +220,6 @@ Cloud mutations and paid model invocations require an explicit execution gate. T
 - [Amazon Bedrock Runtime examples for JavaScript](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/javascript_bedrock-runtime_code_examples.html)
 - [AWS Lambda Node.js handlers](https://docs.aws.amazon.com/lambda/latest/dg/nodejs-handler.html)
 - [API Gateway integration with AWS Lambda](https://docs.aws.amazon.com/lambda/latest/dg/services-apigateway.html)
+- [Managing AWS SAM permissions with CloudFormation mechanisms](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-permissions-cloudformation.html)
+- [CloudFormation service roles](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
 - [Hackathon official rules](https://cockroachdb-ai.devpost.com/rules)

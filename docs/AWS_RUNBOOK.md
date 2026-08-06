@@ -80,6 +80,38 @@ Use the root profile only for account-level administration. End its current cach
 aws logout --profile scopethread
 ```
 
+## Bootstrap the Deployment Roles
+
+Run this one-time local gate before the first AWS deployment:
+
+```powershell
+npm run aws:bootstrap-deployment
+```
+
+It makes no AWS call. After explicit approval, authenticate the `scopethread` root profile and run:
+
+```powershell
+npm run aws:bootstrap-deployment -- --apply
+```
+
+The fixed `scopethread-bootstrap` stack creates a retained private and versioned artifact bucket, a CloudFormation-only service role, a Lambda-only execution role, and the `ScopeThreadDeployment` inline policy for `scopethread-dev`. The script verifies the fixed outputs and logs out the root profile. Do not use root for the application deployment.
+
+## Deploy the SAM Application
+
+Authenticate as `scopethread-dev`, then run the local gate:
+
+```powershell
+npm run aws:deploy
+```
+
+After explicit approval, deploy with:
+
+```powershell
+npm run aws:deploy -- --apply
+```
+
+The guarded deployer reads only the fixed bootstrap stack outputs, runs SAM lint and build checks, uploads artifacts to the bootstrap bucket, and deploys only the fixed `scopethread` stack through the dedicated CloudFormation role. It refuses root and does not accept free-form role, bucket, region, profile, or stack targets.
+
 ## Publish the Static Web Application
 
 Deploying the SAM stack and publishing the browser build are separate external changes. The SAM stack must exist successfully before this step.
