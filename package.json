@@ -14,7 +14,7 @@
     "aws:bootstrap-deployment": "node scripts/bootstrap-aws-deployment.mjs",
     "aws:deploy": "node scripts/deploy-stack.mjs",
     "aws:store-runtime-secret": "node --env-file=.env.local scripts/store-runtime-secret.mjs",
-    "check": "npm run typecheck && npm run test && npm run validate:repo-safety && npm run validate:migrations && npm run validate:infra && npm run build",
+    "check": "npm run typecheck && npm run test && npm run validate:repo-safety && npm run validate:migrations && npm run validate:infra && npm run validate:mcp-audit && npm run build",
     "db:check": "node --env-file=.env.local scripts/check-database.mjs",
     "db:migrate": "node --env-file=.env.local scripts/migrate-database.mjs",
     "db:preflight": "node --env-file=.env.local scripts/check-migration-readiness.mjs",
@@ -33,6 +33,7 @@
     "test:watch": "vitest",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "validate:infra": "node scripts/validate-infra.mjs",
+    "validate:mcp-audit": "node scripts/validate-mcp-audit.mjs",
     "validate:migrations": "node scripts/validate-migrations.mjs",
     "validate:repo-safety": "node scripts/validate-repository-safety.mjs",
     "web:publish": "node scripts/publish-web.mjs"

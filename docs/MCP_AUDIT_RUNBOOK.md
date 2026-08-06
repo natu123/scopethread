@@ -64,6 +64,16 @@ Complete the CockroachDB Cloud browser sign-in. In **Authorize MCP Access**, sel
 
 This authentication is an external account action. Perform it only after an explicit execution instruction.
 
+## Local Validation
+
+Before starting the OAuth flow, verify that the four allowlisted statements remain read-only, exclude sensitive data, use explicit limits, and reference columns present in migration `0001_initial.sql`:
+
+```powershell
+npm run validate:mcp-audit
+```
+
+This validation does not connect to CockroachDB Cloud or execute any SQL.
+
 ## Live Audit Procedure
 
 ### 1. Capture the run ID
