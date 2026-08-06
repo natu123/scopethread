@@ -16,11 +16,14 @@ Authenticated memory inspection is implemented locally. The browser reloads proj
 
 False-positive conflict dismissal is implemented locally. A dismissal records its reason on the proposed memory while leaving the prior active decision unchanged, and the persisted dismissal remains visible after a page reload.
 
+The CockroachDB Cloud Managed MCP audit is prepared as a single-cluster, OAuth, read-only workflow. Live authorization and verification remain an explicit external gate.
+
 ## Design Documents
 
 - [MVP requirements](docs/REQUIREMENTS.md)
 - [Proposed architecture](docs/ARCHITECTURE.md)
 - [AWS development runbook](docs/AWS_RUNBOOK.md)
+- [CockroachDB Cloud MCP audit runbook](docs/MCP_AUDIT_RUNBOOK.md)
 
 ## Local Development
 
@@ -126,7 +129,7 @@ The planned hackathon integrations are:
 | Technology | Planned role | Status |
 | --- | --- | --- |
 | CockroachDB Distributed Vector Indexing | Retrieve semantically related conversations and decisions. | Live embedding retrieval verified. |
-| CockroachDB Cloud Managed MCP Server | Provide controlled agent access to project memory. | Planned |
+| CockroachDB Cloud Managed MCP Server | Provide controlled agent access to project memory. | Read-only audit runbook ready; live verification pending. |
 | Amazon Bedrock | Extract, reason over, and respond with project context. | Live Cohere embedding verified; Nova agent-memory gate pending. |
 | AWS Lambda | Run the serverless agent workflow. | SAM template verified; deployment pending. |
 

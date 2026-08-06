@@ -57,7 +57,7 @@ The same CockroachDB project memory
 
 The public application needs narrowly scoped reads and writes for one demo session. The Managed MCP Server is more appropriate for a controlled AI operator that inspects the live schema and verifies memory records through an auditable, read-only connection.
 
-The application will therefore use a least-privilege SQL account for runtime operations. The MCP credential will not be placed in browser code, Lambda environment variables, or the public repository. The demo will show the MCP auditor querying the same memory created by the AWS application.
+The application will therefore use a least-privilege SQL account for runtime operations. The MCP auditor will use a separate OAuth connection, restricted to the ScopeThread cluster with the `mcp-cluster-id` header and authorized for read access only. MCP credentials will not be placed in browser code, Lambda environment variables, or the public repository. The demo will show the MCP auditor querying the same memory created by the AWS application.
 
 This separation keeps both CockroachDB integrations meaningful:
 
@@ -139,7 +139,8 @@ The exact DDL remains subject to verification against the selected CockroachDB C
 - Use fictional data only in the public demo.
 - Never expose database, AWS, or MCP credentials to the browser.
 - Use parameterized SQL and allowlisted operations rather than model-generated SQL.
-- Use separate database identities for schema migration, application runtime, and read-only auditing.
+- Use separate database identities for schema migration and application runtime; keep Managed MCP access in its separate Cloud OAuth path.
+- Restrict the Managed MCP connection to one cluster, authorize read access only, and use an explicit audit-query allowlist.
 - Scope all application queries by demo session and project.
 - Store only SHA-256 hashes of opaque demo-session bearer tokens; never store or log token plaintext.
 - Reject expired, cross-project, and exhausted sessions before any Bedrock invocation.
@@ -195,6 +196,7 @@ scopethread/
 - The CockroachDB Cloud connection, migrations, structured demo memory, and vector index are verified.
 - Live Cohere embedding inference is verified through `scopethread-dev`; Nova agent-memory inference remains pending quota activation.
 - AWS SAM deployment and CockroachDB Cloud Managed MCP verification remain pending.
+- The Managed MCP read-only audit runbook is prepared; live OAuth authorization and verification remain pending.
 - Public demo-session controls pass local API, database, SAM, and browser E2E verification. Migration `0002_demo_session_access.sql` is applied and its columns and token index are verified on the live cluster.
 
 Cloud mutations and paid model invocations require an explicit execution gate. The live vector-memory script also verifies its AWS caller and refuses root credentials.
