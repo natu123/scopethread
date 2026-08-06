@@ -140,6 +140,7 @@ The exact DDL remains subject to verification against the selected CockroachDB C
 - Never expose database, AWS, or MCP credentials to the browser.
 - Use parameterized SQL and allowlisted operations rather than model-generated SQL.
 - Use separate database identities for schema migration and application runtime; keep Managed MCP access in its separate Cloud OAuth path.
+- Grant the runtime database identity only the table-level `SELECT`, `INSERT`, and `UPDATE` operations used by the Lambda workflow; do not grant deletion, DDL, or privilege delegation.
 - Restrict the Managed MCP connection to one cluster, authorize read access only, and use an explicit audit-query allowlist.
 - Scope all application queries by demo session and project.
 - Store only SHA-256 hashes of opaque demo-session bearer tokens; never store or log token plaintext.

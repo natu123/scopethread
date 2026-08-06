@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "check": "npm run typecheck && npm run test && npm run validate:infra && npm run build",
+    "check": "npm run typecheck && npm run test && npm run validate:migrations && npm run validate:infra && npm run build",
     "db:check": "node --env-file=.env.local scripts/check-database.mjs",
     "db:migrate": "node --env-file=.env.local scripts/migrate-database.mjs",
     "db:preflight": "node --env-file=.env.local scripts/check-migration-readiness.mjs",
@@ -26,6 +26,7 @@
     "test:watch": "vitest",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "validate:infra": "node scripts/validate-infra.mjs",
+    "validate:migrations": "node scripts/validate-migrations.mjs",
     "web:publish": "node scripts/publish-web.mjs"
   },
   "engines": {

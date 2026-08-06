@@ -17,6 +17,14 @@ const expectedSessionColumns = [
   "max_analysis_requests",
   "token_hash",
 ];
+const expectedRuntimeTablePrivileges = new Map([
+  ["agent_runs", ["INSERT", "SELECT", "UPDATE"]],
+  ["conversations", ["INSERT", "SELECT"]],
+  ["demo_sessions", ["INSERT", "SELECT", "UPDATE"]],
+  ["memory_items", ["INSERT", "SELECT", "UPDATE"]],
+  ["memory_links", ["INSERT", "SELECT"]],
+  ["projects", ["INSERT", "SELECT"]],
+]);
 
 if (!shouldApply) {
   console.error("Migration not applied. Re-run with --apply after reviewing the target.");
@@ -69,6 +77,18 @@ if (!shouldApply) {
       [expectedSessionColumns],
     );
     const sessionIndexesResult = await pool.query("SHOW INDEX FROM demo_sessions");
+    const runtimeRoleResult = await pool.query(
+      `SELECT username
+       FROM [SHOW ROLES]
+       WHERE username = 'scopethread_runtime'`,
+    );
+    const runtimeTableGrantsResult = await pool.query(
+      `SELECT table_name, privilege_type
+       FROM information_schema.table_privileges
+       WHERE table_schema = 'public'
+         AND grantee = 'scopethread_runtime'
+       ORDER BY table_name, privilege_type`,
+    );
     const createdTables = tablesResult.rows.map((row) => row.table_name);
     const indexNames = indexesResult.rows.map((row) => row.index_name);
     const sessionColumns = sessionColumnsResult.rows.map(
@@ -77,6 +97,12 @@ if (!shouldApply) {
     const sessionIndexNames = sessionIndexesResult.rows.map(
       (row) => row.index_name,
     );
+    const runtimePrivileges = new Map();
+    for (const row of runtimeTableGrantsResult.rows) {
+      const privileges = runtimePrivileges.get(row.table_name) ?? [];
+      privileges.push(row.privilege_type);
+      runtimePrivileges.set(row.table_name, privileges);
+    }
 
     if (createdTables.length !== expectedTables.length) {
       throw new Error(
@@ -94,11 +120,23 @@ if (!shouldApply) {
     if (!sessionIndexNames.includes("demo_sessions_token_hash_idx")) {
       throw new Error("Index demo_sessions_token_hash_idx was not found.");
     }
+    if (runtimeRoleResult.rowCount !== 1) {
+      throw new Error("Runtime role scopethread_runtime was not found.");
+    }
+    for (const [tableName, expectedPrivileges] of expectedRuntimeTablePrivileges) {
+      const actualPrivileges = runtimePrivileges.get(tableName) ?? [];
+      if (actualPrivileges.join(",") !== expectedPrivileges.join(",")) {
+        throw new Error(
+          `Unexpected runtime privileges for ${tableName}: ${actualPrivileges.join(",")}`,
+        );
+      }
+    }
 
     console.log(`Tables verified: ${createdTables.join(", ")}`);
     console.log("Vector index verified: memory_items_embedding_idx");
     console.log(`Demo session columns verified: ${sessionColumns.join(", ")}`);
     console.log("Demo session index verified: demo_sessions_token_hash_idx");
+    console.log("Least-privilege runtime role verified: scopethread_runtime");
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown migration error";
     console.error(`Migration failed: ${message}`);
