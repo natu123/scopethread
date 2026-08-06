@@ -14,6 +14,8 @@ Short-lived public demo sessions are implemented, and migration `0002_demo_sessi
 
 Migration `0003_runtime_role.sql` prepares a non-login, least-privilege role for the Lambda database identity. It intentionally excludes `DELETE`, object creation, grant delegation, and schema-wide future privileges, and revokes public-schema object creation from the built-in `public` role. Live application of this migration remains an explicit gate.
 
+The guarded runtime-user provisioner creates or rotates `scopethread_app`, verifies its inherited privileges through a real login, and saves the unprinted connection string only to the ignored `.env.runtime.local` file. Provisioning remains an explicit live-database gate.
+
 Authenticated memory inspection is implemented locally. The browser reloads project-scoped items and links from CockroachDB, so active decisions, superseded decisions, source quotes, rationales, and revision chains survive a page reload instead of depending on temporary browser state.
 
 False-positive conflict dismissal is implemented locally. A dismissal records its reason on the proposed memory while leaving the prior active decision unchanged, and the persisted dismissal remains visible after a page reload.

@@ -105,3 +105,27 @@ The guarded publisher performs these operations in order:
 6. Creates a CloudFront invalidation for the published files.
 
 The script never accepts a bucket name or distribution ID from free-form command input. Both targets must come from the named CloudFormation stack.
+
+## Provision the Runtime Database Identity
+
+Keep `.env.local` for migration and maintenance only. After migration `0003_runtime_role.sql` is applied, verify the local gate:
+
+```powershell
+npm run db:provision-runtime
+```
+
+This command does not connect to CockroachDB or write a file without `--apply`. After explicit approval, create or rotate the Lambda SQL user with:
+
+```powershell
+npm run db:provision-runtime -- --apply
+```
+
+The guarded provisioner:
+
+1. Requires the non-login `scopethread_runtime` role from migration `0003`.
+2. Generates a cryptographically random password without printing it.
+3. Creates or rotates the fixed `scopethread_app` login and grants the runtime role.
+4. Connects as `scopethread_app` and verifies the exact table privileges and absence of public-schema `CREATE`.
+5. Writes the runtime connection string only to ignored `.env.runtime.local` as `RUNTIME_DATABASE_URL`.
+
+Do not copy that value into a command, commit, issue, screenshot, or chat. A later deployment step must transfer it directly to the Parameter Store `SecureString` without displaying it.
