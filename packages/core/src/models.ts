@@ -54,6 +54,7 @@ export const AnalyzeConversationRequestSchema = z.object({
   projectId: z.uuid(),
   conversationText: z.string().trim().min(1).max(8000),
   idempotencyKey: z.string().trim().min(8).max(128),
+  locale: z.enum(["en", "ja"]).optional(),
 });
 
 export const ConfirmRevisionRequestSchema = z.object({

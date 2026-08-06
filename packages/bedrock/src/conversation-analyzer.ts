@@ -35,6 +35,12 @@ The JSON must match this shape:
   "retrievedEvidenceIds": ["uuid"]
 }`;
 
+function languageInstruction(locale: "en" | "ja" | undefined): string {
+  return locale === "ja"
+    ? "Write summary, content, rationale, explanation, confirmationQuestion, and nextQuestions in natural Japanese. Keep sourceQuote exactly as written in the conversation."
+    : "Write summary, content, rationale, explanation, confirmationQuestion, and nextQuestions in English. Keep sourceQuote exactly as written in the conversation.";
+}
+
 export class ModelOutputError extends Error {
   override readonly name = "ModelOutputError";
 }
@@ -95,7 +101,11 @@ export class BedrockConversationAnalyzer implements ConversationAnalyzer {
     const response = await this.client.send(
       new ConverseCommand({
         modelId: this.modelId,
-        system: [{ text: systemPrompt }],
+        system: [
+          {
+            text: `${systemPrompt}\n${languageInstruction(context.request.locale)}`,
+          },
+        ],
         messages: [
           {
             role: "user",
@@ -103,6 +113,7 @@ export class BedrockConversationAnalyzer implements ConversationAnalyzer {
               {
                 text: JSON.stringify({
                   conversation: context.request.conversationText,
+                  responseLocale: context.request.locale ?? "en",
                   retrievedMemories: context.retrievedMemories,
                 }),
               },

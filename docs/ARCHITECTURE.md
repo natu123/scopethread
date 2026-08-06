@@ -8,6 +8,7 @@ Status: AWS application, demo-session persistence, and preliminary read-only MCP
 | --- | --- | --- |
 | Language | TypeScript | One language across the browser, API, validation, and tests. |
 | Frontend | React with Vite | Small static application with a fast local feedback loop. |
+| Interface locales | English and Japanese | Keeps English as the judging default while demonstrating locale-aware agent output and an extensible translation boundary. |
 | Frontend hosting | Amazon S3 and CloudFront | Keeps the public demo on AWS without a long-running web server. |
 | API | Amazon API Gateway HTTP API | Lightweight public HTTP entry point with throttling and CORS support. |
 | Compute | AWS Lambda on Node.js | Serverless execution that fits the short request-driven workflow. |

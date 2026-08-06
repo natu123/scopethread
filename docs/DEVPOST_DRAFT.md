@@ -31,6 +31,7 @@ It can:
 - preserve superseded decisions and the reason for each revision;
 - dismiss a false-positive conflict without changing the active decision;
 - restore persisted memory after a browser reload;
+- switch between an English-first interface and natural Japanese analysis;
 - expose an auditable agent-run record without logging client text or credentials.
 
 The core demo begins with an active decision that online booking is not needed. A later conversation requests a booking button on every page. ScopeThread retrieves the earlier decision, identifies the conflict, and asks whether the direction changed. When the creator confirms the revision, the old decision becomes `superseded`, the replacement becomes `active`, and CockroachDB retains the explicit `supersedes` link and its reason.
@@ -49,6 +50,8 @@ The application is a TypeScript monorepo with four main layers:
 2. An AWS Lambda API behind API Gateway for session control and agent workflows.
 3. Amazon Bedrock adapters for Cohere Embed Multilingual v3 and Amazon Nova 2 Lite.
 4. CockroachDB Cloud for relational memory, conversation evidence, vector embeddings, revision links, and durable agent-run records.
+
+The interface keeps English as the default for hackathon review and offers a persistent Japanese switch. The locale is sent to the analysis layer, where both the Nova prompt and deterministic fallback produce natural localized output while retaining source quotes exactly as evidence. The translation layer is intentionally extensible, but the MVP validates English and Japanese deeply before adding more languages.
 
 CockroachDB stores `VECTOR(1024)` embeddings with a project-prefixed cosine vector index. Every retrieval query is scoped to one project before similarity ranking. The application stores conversations, extracted memories, conflict links, and successful run status in controlled transactions so a model or database failure cannot create a partially successful memory update.
 

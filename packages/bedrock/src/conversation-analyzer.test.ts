@@ -85,7 +85,28 @@ describe("BedrockConversationAnalyzer", () => {
     });
     expect(JSON.parse(commandInput.messages[0].content[0].text)).toEqual({
       conversation: newStatement,
+      responseLocale: "en",
       retrievedMemories: [priorMemory],
+    });
+    expect(commandInput.system[0].text).toContain(
+      "Write summary, content, rationale, explanation, confirmationQuestion, and nextQuestions in English.",
+    );
+  });
+
+  it("requests natural Japanese output while preserving source quotes", async () => {
+    const { analyzer, send } = analyzerFor(modelResult());
+
+    await analyzer.analyze({
+      ...context,
+      request: { ...context.request, locale: "ja" },
+    });
+
+    const commandInput = send.mock.calls[0]?.[0]?.input;
+    expect(commandInput.system[0].text).toContain(
+      "Write summary, content, rationale, explanation, confirmationQuestion, and nextQuestions in natural Japanese.",
+    );
+    expect(JSON.parse(commandInput.messages[0].content[0].text)).toMatchObject({
+      responseLocale: "ja",
     });
   });
 

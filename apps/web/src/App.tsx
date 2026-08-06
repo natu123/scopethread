@@ -1,7 +1,19 @@
 import { useEffect, useState } from "react";
-
-const defaultConversation =
-  "The client would now like a booking button on every page so visitors can request an appointment.";
+import {
+  activeDecisionLabel,
+  agentRunLabel,
+  analysesLeftLabel,
+  copy,
+  defaultConversation,
+  groundedRecordsLabel,
+  localeNumber,
+  memoryKindLabel,
+  memoryStatusLabel,
+  translateApiMessage,
+  translateDemoText,
+  translateKnownError,
+  type Locale,
+} from "./i18n.js";
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 type Conflict = {
@@ -94,6 +106,16 @@ type ProjectMemorySnapshot = {
 };
 
 const sessionStorageKey = "scopethread.demo-session.v1";
+const localeStorageKey = "scopethread.locale.v1";
+
+function storedLocale(): Locale {
+  try {
+    const locale = localStorage.getItem(localeStorageKey);
+    return locale === "ja" ? "ja" : "en";
+  } catch {
+    return "en";
+  }
+}
 
 function storedSession(): DemoSession | null {
   try {
@@ -123,6 +145,7 @@ function storedSession(): DemoSession | null {
 
 async function requestProjectMemory(
   activeSession: DemoSession,
+  locale: Locale,
 ): Promise<ProjectMemorySnapshot> {
   const response = await fetch(
     `${apiBaseUrl}/memory?projectId=${encodeURIComponent(activeSession.projectId)}`,
@@ -136,20 +159,22 @@ async function requestProjectMemory(
   if (!response.ok || !("items" in payload)) {
     throw new Error(
       "message" in payload && payload.message
-        ? payload.message
-        : "Project memory could not be loaded.",
+        ? translateApiMessage(payload.message, locale)
+        : copy[locale].memoryLoadFailed,
     );
   }
   return payload;
 }
 
 export function App() {
+  const [locale, setLocale] = useState<Locale>(storedLocale);
+  const t = copy[locale];
   const [session, setSession] = useState<DemoSession | null>(null);
   const [sessionStatus, setSessionStatus] = useState<
     "loading" | "ready" | "error"
   >("loading");
   const [sessionError, setSessionError] = useState<string | null>(null);
-  const [conversation, setConversation] = useState(defaultConversation);
+  const [conversation, setConversation] = useState(defaultConversation.en);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
     "idle",
@@ -178,6 +203,26 @@ export function App() {
   const [memoryError, setMemoryError] = useState<string | null>(null);
 
   useEffect(() => {
+    document.documentElement.lang = locale;
+    try {
+      localStorage.setItem(localeStorageKey, locale);
+    } catch {
+      // The language switch remains usable when storage is unavailable.
+    }
+  }, [locale]);
+
+  function handleLocaleChange(nextLocale: Locale) {
+    if (conversation === defaultConversation[locale]) {
+      setConversation(defaultConversation[nextLocale]);
+    }
+    setSessionError((value) => translateKnownError(value, nextLocale));
+    setError((value) => translateKnownError(value, nextLocale));
+    setMemoryError((value) => translateKnownError(value, nextLocale));
+    setRevisionError((value) => translateKnownError(value, nextLocale));
+    setLocale(nextLocale);
+  }
+
+  useEffect(() => {
     const existing = storedSession();
     if (existing) {
       setSession(existing);
@@ -187,7 +232,7 @@ export function App() {
     }
     if (!apiBaseUrl) {
       setSessionStatus("error");
-      setSessionError("VITE_API_BASE_URL is not configured for this build.");
+      setSessionError(t.apiNotConfigured);
       return;
     }
 
@@ -202,9 +247,9 @@ export function App() {
         const payload = (await response.json()) as DemoSession | AnalyzeErrorResponse;
         if (!response.ok || !("token" in payload)) {
           throw new Error(
-            "message" in payload && payload.message
-              ? payload.message
-              : "A demo session could not be created.",
+              "message" in payload && payload.message
+              ? translateApiMessage(payload.message, locale)
+              : t.sessionCreateFailed,
           );
         }
         sessionStorage.setItem(sessionStorageKey, JSON.stringify(payload));
@@ -220,7 +265,7 @@ export function App() {
         setSessionError(
           caught instanceof Error
             ? caught.message
-            : "A demo session could not be created.",
+            : t.sessionCreateFailed,
         );
       });
 
@@ -234,7 +279,7 @@ export function App() {
     let active = true;
     setMemoryStatus("loading");
     setMemoryError(null);
-    void requestProjectMemory(session)
+    void requestProjectMemory(session, locale)
       .then((snapshot) => {
         if (active) {
           setMemorySnapshot(snapshot);
@@ -247,18 +292,18 @@ export function App() {
           setMemoryError(
             caught instanceof Error
               ? caught.message
-              : "Project memory could not be loaded.",
+              : t.memoryLoadFailed,
           );
         }
       });
     return () => {
       active = false;
     };
-  }, [session]);
+  }, [locale, session, t.memoryLoadFailed]);
 
   async function refreshProjectMemory(activeSession: DemoSession) {
     try {
-      const snapshot = await requestProjectMemory(activeSession);
+      const snapshot = await requestProjectMemory(activeSession, locale);
       setMemorySnapshot(snapshot);
       setMemoryStatus("ready");
       setMemoryError(null);
@@ -267,7 +312,7 @@ export function App() {
       setMemoryError(
         caught instanceof Error
           ? caught.message
-          : "Project memory could not be refreshed.",
+          : t.memoryRefreshFailed,
       );
     }
   }
@@ -280,7 +325,7 @@ export function App() {
     }
     if (!apiBaseUrl) {
       setStatus("error");
-      setError("VITE_API_BASE_URL is not configured for this build.");
+      setError(t.apiNotConfigured);
       return;
     }
 
@@ -308,6 +353,7 @@ export function App() {
           projectId: session.projectId,
           conversationText: trimmed,
           idempotencyKey,
+          locale,
         }),
       });
       const payload = (await response.json()) as
@@ -318,8 +364,8 @@ export function App() {
         setRunId(payload.runId ?? null);
         throw new Error(
           "message" in payload && payload.message
-            ? payload.message
-            : "The agent request failed.",
+            ? translateApiMessage(payload.message, locale)
+            : t.analysisFailed,
         );
       }
 
@@ -333,7 +379,7 @@ export function App() {
       setError(
         caught instanceof Error
           ? caught.message
-          : "The agent request failed unexpectedly.",
+          : t.analysisUnexpected,
       );
     }
   }
@@ -379,8 +425,8 @@ export function App() {
       if (!response.ok || !("replacementMemoryId" in payload)) {
         throw new Error(
           "message" in payload && payload.message
-            ? payload.message
-            : "The decision revision could not be saved.",
+            ? translateApiMessage(payload.message, locale)
+            : t.revisionSaveFailed,
         );
       }
 
@@ -394,7 +440,7 @@ export function App() {
       setRevisionError(
         caught instanceof Error
           ? caught.message
-          : "The decision revision failed unexpectedly.",
+          : t.revisionUnexpected,
       );
     }
   }
@@ -436,8 +482,8 @@ export function App() {
       if (!response.ok || !("dismissedMemoryId" in payload)) {
         throw new Error(
           "message" in payload && payload.message
-            ? payload.message
-            : "The conflict could not be dismissed.",
+            ? translateApiMessage(payload.message, locale)
+            : t.dismissalFailed,
         );
       }
 
@@ -451,7 +497,7 @@ export function App() {
       setRevisionError(
         caught instanceof Error
           ? caught.message
-          : "The conflict dismissal failed unexpectedly.",
+          : t.dismissalUnexpected,
       );
     }
   }
@@ -498,7 +544,7 @@ export function App() {
   const originalDecision =
     revisionPrior?.content ??
     session?.initialDecision.content ??
-    "Loading the demo decision...";
+    t.loadingDecision;
   const hasStoredRevision = Boolean(
     latestRevisionLink && revisionPrior && revisionReplacement,
   );
@@ -520,41 +566,59 @@ export function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <a className="brand" href="#top" aria-label="ScopeThread home">
+        <a className="brand" href="#top" aria-label={t.homeLabel}>
           <span className="brand-mark" aria-hidden="true">S</span>
           <span>ScopeThread</span>
         </a>
-        <span className="environment-label">
-          {sessionStatus === "ready"
-            ? "Agentic memory"
-            : sessionStatus === "loading"
-              ? "Starting session"
-              : "Session unavailable"}
-        </span>
+        <div className="topbar-actions">
+          <span className="environment-label">
+            {sessionStatus === "ready"
+              ? t.agenticMemory
+              : sessionStatus === "loading"
+                ? t.startingSession
+                : t.sessionUnavailable}
+          </span>
+          <div className="language-switch" aria-label={t.languageSwitcherLabel}>
+            <button
+              type="button"
+              className={locale === "en" ? "is-active" : ""}
+              aria-pressed={locale === "en"}
+              onClick={() => handleLocaleChange("en")}
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              className={locale === "ja" ? "is-active" : ""}
+              aria-pressed={locale === "ja"}
+              onClick={() => handleLocaleChange("ja")}
+            >
+              日本語
+            </button>
+          </div>
+        </div>
       </header>
 
       <main id="top" className="workspace">
         <section className="intro" aria-labelledby="page-title">
-          <p className="eyebrow">Website requirements memory</p>
-          <h1 id="page-title">Keep every client decision connected.</h1>
-          <p>
-            ScopeThread turns conversations into traceable requirements, decisions,
-            revisions, and next questions.
-          </p>
+          <p className="eyebrow">{t.introEyebrow}</p>
+          <h1 id="page-title">{t.introTitle}</h1>
+          <p>{t.introBody}</p>
         </section>
 
         <div className="project-grid">
           <aside className="panel memory-panel" aria-labelledby="memory-title">
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">Project memory</p>
+                <p className="eyebrow">{t.projectMemory}</p>
                 <h2 id="memory-title">
-                  {session?.projectName ?? "Preparing project memory"}
+                  {session
+                    ? translateDemoText(session.projectName, locale)
+                    : t.preparingMemory}
                 </h2>
               </div>
               <span className="status-pill">
-                {activeDecisionCount} active decision
-                {activeDecisionCount === 1 ? "" : "s"}
+                {activeDecisionLabel(activeDecisionCount, locale)}
               </span>
             </div>
 
@@ -572,17 +636,23 @@ export function App() {
                 key={item.id}
               >
                 <div className="memory-meta">
-                  <span>{item.kind.replace("_", " ")}</span>
-                  <span>{item.status}</span>
+                  <span>{memoryKindLabel(item.kind, locale)}</span>
+                  <span>{memoryStatusLabel(item.status, locale)}</span>
                 </div>
-                <p>{item.content}</p>
-                {item.rationale ? <small>Reason: {item.rationale}</small> : null}
-                <small>Source: {item.sourceQuote}</small>
+                <p>{translateDemoText(item.content, locale)}</p>
+                {item.rationale ? (
+                  <small>
+                    {t.reason}: {translateDemoText(item.rationale, locale)}
+                  </small>
+                ) : null}
+                <small>
+                  {t.source}: {translateDemoText(item.sourceQuote, locale)}
+                </small>
               </article>
             ))}
 
             {memoryStatus === "loading" ? (
-              <p className="memory-note">Refreshing CockroachDB memory...</p>
+              <p className="memory-note">{t.refreshingMemory}</p>
             ) : null}
             {memoryError ? (
               <p className="form-error" role="alert">{memoryError}</p>
@@ -590,15 +660,15 @@ export function App() {
 
             <dl className="project-facts">
               <div>
-                <dt>Requirements</dt>
+                <dt>{t.requirements}</dt>
                 <dd>{requirementCount}</dd>
               </div>
               <div>
-                <dt>Open questions</dt>
+                <dt>{t.openQuestions}</dt>
                 <dd>{openQuestionCount}</dd>
               </div>
               <div>
-                <dt>Revisions</dt>
+                <dt>{t.revisions}</dt>
                 <dd>{revisionCount}</dd>
               </div>
             </dl>
@@ -607,13 +677,13 @@ export function App() {
           <section className="panel conversation-panel" aria-labelledby="conversation-title">
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">New evidence</p>
-                <h2 id="conversation-title">Analyze a conversation</h2>
+                <p className="eyebrow">{t.newEvidence}</p>
+                <h2 id="conversation-title">{t.analyzeConversation}</h2>
               </div>
             </div>
 
             <form onSubmit={handleSubmit}>
-              <label htmlFor="conversation">Client conversation</label>
+              <label htmlFor="conversation">{t.clientConversation}</label>
               <textarea
                 id="conversation"
                 value={conversation}
@@ -624,16 +694,16 @@ export function App() {
               />
               <div className="form-footer">
                 <small>
-                  {conversation.length.toLocaleString()} / 8,000
+                  {localeNumber(conversation.length, locale)} / 8,000
                   {remainingAnalysisRequests === null
                     ? ""
-                    : ` · ${remainingAnalysisRequests} analyses left`}
+                    : ` · ${analysesLeftLabel(remainingAnalysisRequests, locale)}`}
                 </small>
                 <button
                   type="submit"
                   disabled={status === "loading" || sessionStatus !== "ready"}
                 >
-                  {status === "loading" ? "Analyzing..." : "Analyze memory"}
+                  {status === "loading" ? t.analyzing : t.analyzeMemory}
                 </button>
               </div>
               {error ? <p className="form-error" role="alert">{error}</p> : null}
@@ -650,68 +720,68 @@ export function App() {
             data-conflict={Boolean(conflict && !revision && !dismissal)}
           >
             {revision
-              ? "Revision confirmed"
+              ? t.revisionConfirmed
               : dismissal
-                ? "Conflict dismissed"
+                ? t.conflictDismissed
               : hasStoredRevision && !result
-                ? "Stored revision"
+                ? t.storedRevision
                 : hasStoredDismissal && !result
-                  ? "Stored dismissal"
+                  ? t.storedDismissal
               : status === "loading"
-              ? "Analyzing"
+              ? t.analyzingStatus
               : conflict
-                ? "Conflict found"
+                ? t.conflictFound
                 : result
-                  ? "No conflict found"
-                  : "Awaiting analysis"}
+                  ? t.noConflictFound
+                  : t.awaitingAnalysis}
           </div>
           <div>
-            <p className="eyebrow">Agent analysis</p>
+            <p className="eyebrow">{t.agentAnalysis}</p>
             <h2 id="result-title">
               {result?.summary ??
                 (hasStoredRevision
-                  ? "The current decision supersedes an earlier client choice."
+                  ? t.storedRevisionSummary
                   : hasStoredDismissal
-                    ? "A proposed conflict was dismissed without changing the active decision."
-                  : "Submit new client evidence to search project memory.")}
+                    ? t.storedDismissalSummary
+                  : t.emptyAnalysisSummary)}
             </h2>
             <p className="evidence-link">
               {result?.retrievedEvidenceIds.length
-                ? `Grounded in ${result.retrievedEvidenceIds.length} stored memory record(s).`
+                ? groundedRecordsLabel(result.retrievedEvidenceIds.length, locale)
                 : hasStoredRevision
-                  ? "Loaded from persisted CockroachDB revision history."
+                  ? t.loadedRevisionEvidence
                   : hasStoredDismissal
-                    ? "Loaded from persisted CockroachDB conflict history."
-                  : "No stored evidence has been retrieved yet."}
+                    ? t.loadedDismissalEvidence
+                  : t.noEvidence}
             </p>
           </div>
           <div className="question-card">
             <span>
               {dismissal
-                ? "Dismissal reason"
+                ? t.dismissalReason
                 : hasStoredDismissal && !result
-                  ? "Dismissal reason"
+                  ? t.dismissalReason
                 : revision || (hasStoredRevision && !result)
-                ? "Decision revision"
-                : "Next question"}
+                ? t.decisionRevision
+                : t.nextQuestion}
             </span>
             <p>
               {dismissal
                 ? dismissal.reason
                 : hasStoredDismissal && !result
                   ? latestDismissedMemory?.rationale ??
-                    "No dismissal reason was recorded."
+                    t.noDismissalReason
                 : revision
                 ? revision.reason
                 : hasStoredRevision && !result
-                  ? latestRevisionLink?.reason ?? "No revision reason was recorded."
-                : nextQuestion ?? "The next grounded question will appear here."}
+                  ? latestRevisionLink?.reason ?? t.noRevisionReason
+                : nextQuestion ?? t.emptyNextQuestion}
             </p>
           </div>
           {conflict && runId && !revision && !dismissal ? (
             <form className="revision-form" onSubmit={handleRevisionSubmit}>
               <div>
-                <label htmlFor="revision-reason">Reason for this decision</label>
+                <label htmlFor="revision-reason">{t.decisionReason}</label>
                 <textarea
                   id="revision-reason"
                   value={revisionReason}
@@ -719,11 +789,11 @@ export function App() {
                   rows={3}
                   maxLength={2000}
                   disabled={revisionStatus === "loading"}
-                  placeholder="Record why the conflict should be confirmed or dismissed."
+                  placeholder={t.reasonPlaceholder}
                 />
               </div>
               <div className="revision-actions">
-                <small>{revisionReason.length.toLocaleString()} / 2,000</small>
+                <small>{localeNumber(revisionReason.length, locale)} / 2,000</small>
                 <button
                   type="submit"
                   disabled={
@@ -732,8 +802,8 @@ export function App() {
                   }
                 >
                   {resolutionAction === "revision"
-                    ? "Saving revision..."
-                    : "Confirm revision"}
+                    ? t.savingRevision
+                    : t.confirmRevision}
                 </button>
                 <button
                   className="button-secondary"
@@ -745,8 +815,8 @@ export function App() {
                   }
                 >
                   {resolutionAction === "dismissal"
-                    ? "Dismissing conflict..."
-                    : "Dismiss conflict"}
+                    ? t.dismissingConflict
+                    : t.dismissConflict}
                 </button>
               </div>
               {revisionError ? (
@@ -755,18 +825,23 @@ export function App() {
             </form>
           ) : null}
           {(revision && conflict) || hasStoredRevision ? (
-            <div className="revision-chain" aria-label="Decision revision chain">
-              <span>Superseded decision</span>
-              <p>{originalDecision}</p>
+            <div className="revision-chain" aria-label={t.decisionRevision}>
+              <span>{t.supersededDecision}</span>
+              <p>{translateDemoText(originalDecision, locale)}</p>
               <span aria-hidden="true">↓</span>
-              <span>Active replacement</span>
-              <p>{revisionReplacement?.content ?? conflict?.newStatement}</p>
+              <span>{t.activeReplacement}</span>
+              <p>
+                {translateDemoText(
+                  revisionReplacement?.content ?? conflict?.newStatement ?? "",
+                  locale,
+                )}
+              </p>
             </div>
           ) : null}
           <p className="preview-note">
             {runId
-              ? `Agent run: ${runId}`
-              : "Successful analyses use Amazon Bedrock and persist traceable memory in CockroachDB."}
+              ? agentRunLabel(runId, locale)
+              : t.successfulAnalysisNote}
           </p>
         </section>
       </main>

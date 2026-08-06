@@ -4,6 +4,8 @@
 
 ScopeThread is a persistent-memory agent for web production requirements. It turns client conversations into traceable requirements, decisions, revisions, open questions, and next-step prompts without losing the context behind them.
 
+The public interface is English-first for hackathon review and includes a persistent Japanese switch. The selected locale also travels with each analysis request, so Amazon Nova and the deterministic demo analyzer return natural English or Japanese while preserving client source quotes. Translation dictionaries and locale-aware formatters keep the interface ready for additional languages without adding shallow, unverified translations to the MVP.
+
 ## Status
 
 ScopeThread has a verified application scaffold for the web interface, Lambda API, core domain workflow, Bedrock adapters, CockroachDB vector queries, database migration, and AWS SAM infrastructure. The CockroachDB Cloud connection, migration, vector index, fictional demo memory, live Cohere embedding retrieval, one-time deployment bootstrap, AWS application stack, and [public CloudFront application](https://d2kn7tl59k7usc.cloudfront.net/) have been verified in Singapore. The deployed API health, a no-Bedrock session-to-memory smoke path, the public browser session, and a single-cluster read-only Managed MCP connection pass against the live system. Nova 2 Lite live inference is waiting for AWS to complete its `ap-southeast-1` quota review; AWS stated that increasing Tokens per minute will automatically scale Tokens per day.
