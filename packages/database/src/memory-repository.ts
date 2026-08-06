@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type {
   ConfirmRevisionResult,
+  ConflictDismissalRepository,
   DemoSessionAuthorization,
   DemoSessionRepository,
   MemoryInspectionRepository,
   MemoryRepository,
+  DismissConflictResult,
   ProjectMemoryItem,
   ProjectMemoryLink,
   RevisionRepository,
@@ -16,6 +18,11 @@ type MemoryStateRow = {
   id: string;
   kind: string;
   status: string;
+};
+
+type DismissalStateRow = MemoryStateRow & {
+  rationale: string | null;
+  updated_at: Date | string;
 };
 
 type RevisionLinkRow = {
@@ -69,6 +76,7 @@ export class CockroachMemoryRepository
   implements
     MemoryRepository,
     RevisionRepository,
+    ConflictDismissalRepository,
     DemoSessionRepository,
     MemoryInspectionRepository
 {
@@ -510,6 +518,129 @@ export class CockroachMemoryRepository
     );
     if (result.rowCount !== 1) {
       throw new Error("The started agent run could not be marked as failed.");
+    }
+  }
+
+  async dismissConflict(
+    input: Parameters<ConflictDismissalRepository["dismissConflict"]>[0],
+  ): Promise<DismissConflictResult> {
+    const client = await this.pool.connect();
+
+    try {
+      await client.query("BEGIN");
+      const candidateResult = await client.query<{ id: string }>(
+        `SELECT replacement.id
+         FROM agent_runs AS run
+         JOIN memory_items AS replacement
+           ON replacement.project_id = run.project_id
+          AND replacement.source_conversation_id = run.conversation_id
+         JOIN memory_links AS conflict
+           ON conflict.project_id = run.project_id
+          AND conflict.from_memory_id = replacement.id
+          AND conflict.to_memory_id = $3
+          AND conflict.relation = 'conflicts_with'
+         WHERE run.id = $2
+           AND run.project_id = $1
+           AND run.status = 'succeeded'
+         ORDER BY replacement.created_at, replacement.id`,
+        [input.projectId, input.agentRunId, input.priorMemoryId],
+      );
+      if (candidateResult.rows.length === 0) {
+        await client.query("COMMIT");
+        return { status: "not_found" };
+      }
+      if (candidateResult.rows.length !== 1) {
+        await client.query("COMMIT");
+        return { status: "invalid_state" };
+      }
+      const dismissedMemoryId = candidateResult.rows[0]?.id;
+      if (!dismissedMemoryId) {
+        throw new Error("The conflict candidate did not include an ID.");
+      }
+
+      const stateResult = await client.query<DismissalStateRow>(
+        `SELECT id, kind, status, rationale, updated_at
+         FROM memory_items
+         WHERE project_id = $1
+           AND (id = $2 OR id = $3)
+         FOR UPDATE`,
+        [input.projectId, input.priorMemoryId, dismissedMemoryId],
+      );
+      const prior = stateResult.rows.find(
+        (memory) => memory.id === input.priorMemoryId,
+      );
+      const candidate = stateResult.rows.find(
+        (memory) => memory.id === dismissedMemoryId,
+      );
+      if (!prior || !candidate) {
+        await client.query("COMMIT");
+        return { status: "not_found" };
+      }
+
+      if (candidate.status === "dismissed") {
+        if (
+          prior.kind !== "decision" ||
+          prior.status !== "active" ||
+          !candidate.rationale
+        ) {
+          await client.query("COMMIT");
+          return { status: "invalid_state" };
+        }
+        await client.query("COMMIT");
+        return {
+          status: "dismissed",
+          priorMemoryId: input.priorMemoryId,
+          dismissedMemoryId,
+          reason: candidate.rationale,
+          dismissedAt: toIsoTimestamp(candidate.updated_at),
+          changed: false,
+        };
+      }
+
+      if (
+        prior.kind !== "decision" ||
+        prior.status !== "active" ||
+        !["decision", "requirement"].includes(candidate.kind) ||
+        candidate.status !== "proposed"
+      ) {
+        await client.query("COMMIT");
+        return { status: "invalid_state" };
+      }
+
+      const updateResult = await client.query<{
+        rationale: string | null;
+        updated_at: Date | string;
+      }>(
+        `UPDATE memory_items
+         SET status = 'dismissed',
+             rationale = $3,
+             updated_at = now()
+         WHERE project_id = $1
+           AND id = $2
+           AND kind IN ('decision', 'requirement')
+           AND status = 'proposed'
+         RETURNING rationale, updated_at`,
+        [input.projectId, dismissedMemoryId, input.reason],
+      );
+      const dismissed = updateResult.rows[0];
+      if (updateResult.rowCount !== 1 || !dismissed?.rationale) {
+        throw new Error("The conflict proposal could not be dismissed.");
+      }
+
+      await client.query("COMMIT");
+      return {
+        status: "dismissed",
+        priorMemoryId: input.priorMemoryId,
+        dismissedMemoryId,
+        reason: dismissed.rationale,
+        dismissedAt: toIsoTimestamp(dismissed.updated_at),
+        changed: true,
+      };
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
     }
   }
 

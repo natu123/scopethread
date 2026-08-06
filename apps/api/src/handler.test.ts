@@ -3,13 +3,24 @@ import type {
   APIGatewayProxyEventV2,
   APIGatewayProxyStructuredResultV2,
 } from "aws-lambda";
-import { ConfirmRevisionError, type RevisionOutcome } from "@scopethread/core";
+import {
+  ConfirmRevisionError,
+  DismissConflictError,
+  type ConflictDismissalOutcome,
+  type RevisionOutcome,
+} from "@scopethread/core";
 import { createHandler, handler, type HandlerDependencies } from "./handler";
 
 const demoToken = "a".repeat(43);
 
 const getEmptyMemoryInspectionRepository = async () => ({
   inspectProjectMemory: async () => null,
+});
+
+const getUnexpectedDismissalUseCase = async () => ({
+  execute: async () => {
+    throw new Error("Conflict dismissal was not expected in this test.");
+  },
 });
 
 function event(method: string, rawPath: string, body?: string) {
@@ -40,6 +51,36 @@ function handlerWithRevision(
       },
     }),
     getRevisionUseCase: async () => ({ execute }),
+    getDismissalUseCase: getUnexpectedDismissalUseCase,
+    getSessionRepository: async () => ({
+      createDemoSession: async () => {
+        throw new Error("Session creation was not expected in this test.");
+      },
+      authorizeDemoRequest: async () => ({
+        status: "authorized",
+        remainingAnalysisRequests: 5,
+      }),
+    }),
+    getMemoryInspectionRepository: getEmptyMemoryInspectionRepository,
+  };
+  return createHandler(dependencies);
+}
+
+function handlerWithDismissal(
+  execute: (input: unknown) => Promise<ConflictDismissalOutcome>,
+) {
+  const dependencies: HandlerDependencies = {
+    getAnalyzeUseCase: async () => ({
+      execute: async () => {
+        throw new Error("Analyze was not expected in this test.");
+      },
+    }),
+    getRevisionUseCase: async () => ({
+      execute: async () => {
+        throw new Error("Revision was not expected in this test.");
+      },
+    }),
+    getDismissalUseCase: async () => ({ execute }),
     getSessionRepository: async () => ({
       createDemoSession: async () => {
         throw new Error("Session creation was not expected in this test.");
@@ -156,6 +197,7 @@ describe("API handler", () => {
           throw new Error("Revision was not expected in this test.");
         },
       }),
+      getDismissalUseCase: getUnexpectedDismissalUseCase,
       getSessionRepository: async () => ({
         createDemoSession,
         authorizeDemoRequest: async () => ({ status: "unauthorized" }),
@@ -185,6 +227,7 @@ describe("API handler", () => {
     const dependencies: HandlerDependencies = {
       getAnalyzeUseCase: async () => ({ execute }),
       getRevisionUseCase: async () => ({ execute: vi.fn() }),
+      getDismissalUseCase: getUnexpectedDismissalUseCase,
       getSessionRepository: async () => ({
         createDemoSession: vi.fn(),
         authorizeDemoRequest: async () => ({ status: "rate_limited" }),
@@ -217,6 +260,7 @@ describe("API handler", () => {
     const dependencies: HandlerDependencies = {
       getAnalyzeUseCase: async () => ({ execute }),
       getRevisionUseCase: async () => ({ execute: vi.fn() }),
+      getDismissalUseCase: getUnexpectedDismissalUseCase,
       getSessionRepository: async () => ({
         createDemoSession: vi.fn(),
         authorizeDemoRequest: async () => ({ status: "unauthorized" }),
@@ -269,6 +313,7 @@ describe("API handler", () => {
     const dependencies: HandlerDependencies = {
       getAnalyzeUseCase: async () => ({ execute: vi.fn() }),
       getRevisionUseCase: async () => ({ execute: vi.fn() }),
+      getDismissalUseCase: getUnexpectedDismissalUseCase,
       getSessionRepository: async () => ({
         createDemoSession: vi.fn(),
         authorizeDemoRequest,
@@ -369,6 +414,61 @@ describe("API handler", () => {
           agentRunId: "10000000-0000-4000-8000-000000000005",
           priorMemoryId: "10000000-0000-4000-8000-000000000004",
           reason: "The project direction changed.",
+        }),
+      ),
+    )) as APIGatewayProxyStructuredResultV2;
+
+    expect(response.statusCode).toBe(statusCode);
+    expect(JSON.parse(response.body ?? "{}").error).toBe(code);
+  });
+
+  it("dismisses a stored false-positive conflict", async () => {
+    const execute = vi.fn().mockResolvedValue({
+      priorMemoryId: "10000000-0000-4000-8000-000000000004",
+      dismissedMemoryId: "10000000-0000-4000-8000-000000000006",
+      reason: "The request was exploratory and is not approved scope.",
+      dismissedAt: "2026-08-06T05:00:00.000Z",
+      changed: true,
+    });
+    const dismissalHandler = handlerWithDismissal(execute);
+    const body = {
+      projectId: "10000000-0000-4000-8000-000000000002",
+      agentRunId: "10000000-0000-4000-8000-000000000005",
+      priorMemoryId: "10000000-0000-4000-8000-000000000004",
+      reason: "The request was exploratory and is not approved scope.",
+    };
+
+    const response = (await dismissalHandler(
+      event("POST", "/conflicts/dismiss", JSON.stringify(body)),
+    )) as APIGatewayProxyStructuredResultV2;
+    const payload = JSON.parse(response.body ?? "{}");
+
+    expect(response.statusCode).toBe(200);
+    expect(payload).toMatchObject({
+      mode: "conflict-dismissed",
+      changed: true,
+      priorMemoryId: body.priorMemoryId,
+    });
+    expect(execute).toHaveBeenCalledWith(body);
+  });
+
+  it.each([
+    ["CONFLICT_NOT_FOUND", 404],
+    ["CONFLICT_STATE_CONFLICT", 409],
+  ] as const)("maps %s to HTTP %i", async (code, statusCode) => {
+    const dismissalHandler = handlerWithDismissal(async () => {
+      throw new DismissConflictError(code);
+    });
+
+    const response = (await dismissalHandler(
+      event(
+        "POST",
+        "/conflicts/dismiss",
+        JSON.stringify({
+          projectId: "10000000-0000-4000-8000-000000000002",
+          agentRunId: "10000000-0000-4000-8000-000000000005",
+          priorMemoryId: "10000000-0000-4000-8000-000000000004",
+          reason: "The request was exploratory.",
         }),
       ),
     )) as APIGatewayProxyStructuredResultV2;

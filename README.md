@@ -14,6 +14,8 @@ Short-lived public demo sessions are implemented, and migration `0002_demo_sessi
 
 Authenticated memory inspection is implemented locally. The browser reloads project-scoped items and links from CockroachDB, so active decisions, superseded decisions, source quotes, rationales, and revision chains survive a page reload instead of depending on temporary browser state.
 
+False-positive conflict dismissal is implemented locally. A dismissal records its reason on the proposed memory while leaving the prior active decision unchanged, and the persisted dismissal remains visible after a page reload.
+
 ## Design Documents
 
 - [MVP requirements](docs/REQUIREMENTS.md)
@@ -152,6 +154,7 @@ Structured records remain authoritative. Vector similarity is used to find conte
 - [x] Build one end-to-end memory workflow locally.
 - [x] Add conflict detection and next-question generation.
 - [x] Restore persisted project memory and revision history after page reload.
+- [x] Dismiss false-positive conflicts without replacing active decisions.
 - [ ] Deploy the functional demo on AWS.
 - [ ] Verify security, observability, and failure handling.
 - [ ] Record a public demo video under three minutes.

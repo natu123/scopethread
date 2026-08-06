@@ -104,6 +104,12 @@ Resources:
             ApiId: !Ref HttpApi
             Method: POST
             Path: /revisions
+        DismissConflict:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /conflicts/dismiss
       Policies:
         - Statement:
             - Effect: Allow

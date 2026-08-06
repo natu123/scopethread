@@ -59,6 +59,7 @@ if (
 const revisionEvent = apiFunction.Properties?.Events?.ConfirmRevision;
 const sessionEvent = apiFunction.Properties?.Events?.CreateSession;
 const memoryEvent = apiFunction.Properties?.Events?.InspectMemory;
+const dismissalEvent = apiFunction.Properties?.Events?.DismissConflict;
 if (
   sessionEvent?.Type !== "HttpApi" ||
   sessionEvent.Properties?.Method !== "POST" ||
@@ -79,6 +80,15 @@ if (
   revisionEvent.Properties?.Path !== "/revisions"
 ) {
   throw new Error("The Lambda must expose POST /revisions through HTTP API.");
+}
+if (
+  dismissalEvent?.Type !== "HttpApi" ||
+  dismissalEvent.Properties?.Method !== "POST" ||
+  dismissalEvent.Properties?.Path !== "/conflicts/dismiss"
+) {
+  throw new Error(
+    "The Lambda must expose POST /conflicts/dismiss through HTTP API.",
+  );
 }
 
 const httpApi = template.Resources.HttpApi;

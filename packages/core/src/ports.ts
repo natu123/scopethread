@@ -2,7 +2,9 @@ import type {
   AnalysisResult,
   AnalyzeConversationRequest,
   ConfirmRevisionRequest,
+  ConflictDismissalOutcome,
   DemoSession,
+  DismissConflictRequest,
   ProjectMemorySnapshot,
   RevisionOutcome,
   StoredMemory,
@@ -58,6 +60,15 @@ export type ConfirmRevisionResult =
 
 export interface RevisionRepository {
   confirmRevision(input: ConfirmRevisionRequest): Promise<ConfirmRevisionResult>;
+}
+
+export type DismissConflictResult =
+  | ({ status: "dismissed" } & ConflictDismissalOutcome)
+  | { status: "not_found" }
+  | { status: "invalid_state" };
+
+export interface ConflictDismissalRepository {
+  dismissConflict(input: DismissConflictRequest): Promise<DismissConflictResult>;
 }
 
 export type DemoSessionAuthorization =

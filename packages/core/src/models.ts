@@ -63,6 +63,13 @@ export const ConfirmRevisionRequestSchema = z.object({
   reason: z.string().trim().min(3).max(2000),
 });
 
+export const DismissConflictRequestSchema = z.object({
+  projectId: z.uuid(),
+  agentRunId: z.uuid(),
+  priorMemoryId: z.uuid(),
+  reason: z.string().trim().min(3).max(2000),
+});
+
 export const InspectProjectMemoryRequestSchema = z.object({
   projectId: z.uuid(),
 });
@@ -75,12 +82,23 @@ export type AnalyzeConversationRequest = z.infer<
 export type ConfirmRevisionRequest = z.infer<
   typeof ConfirmRevisionRequestSchema
 >;
+export type DismissConflictRequest = z.infer<
+  typeof DismissConflictRequestSchema
+>;
 
 export type RevisionOutcome = {
   priorMemoryId: string;
   replacementMemoryId: string;
   reason: string;
   revisedAt: string;
+  changed: boolean;
+};
+
+export type ConflictDismissalOutcome = {
+  priorMemoryId: string;
+  dismissedMemoryId: string;
+  reason: string;
+  dismissedAt: string;
   changed: boolean;
 };
 

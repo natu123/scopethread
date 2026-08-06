@@ -40,6 +40,15 @@ type RevisionResponse = {
   changed: boolean;
 };
 
+type ConflictDismissalResponse = {
+  mode: "conflict-dismissed";
+  priorMemoryId: string;
+  dismissedMemoryId: string;
+  reason: string;
+  dismissedAt: string;
+  changed: boolean;
+};
+
 type DemoSession = {
   token: string;
   sessionId: string;
@@ -149,10 +158,15 @@ export function App() {
   const [runId, setRunId] = useState<string | null>(null);
   const [revisionReason, setRevisionReason] = useState("");
   const [revision, setRevision] = useState<RevisionResponse | null>(null);
+  const [dismissal, setDismissal] =
+    useState<ConflictDismissalResponse | null>(null);
   const [revisionStatus, setRevisionStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [revisionError, setRevisionError] = useState<string | null>(null);
+  const [resolutionAction, setResolutionAction] = useState<
+    "revision" | "dismissal" | null
+  >(null);
   const [remainingAnalysisRequests, setRemainingAnalysisRequests] = useState<
     number | null
   >(null);
@@ -276,9 +290,11 @@ export function App() {
     setRunId(null);
     setResult(null);
     setRevision(null);
+    setDismissal(null);
     setRevisionReason("");
     setRevisionStatus("idle");
     setRevisionError(null);
+    setResolutionAction(null);
 
     try {
       const response = await fetch(`${apiBaseUrl}/analyze`, {
@@ -339,6 +355,7 @@ export function App() {
     }
 
     setRevisionStatus("loading");
+    setResolutionAction("revision");
     setRevisionError(null);
 
     try {
@@ -369,13 +386,72 @@ export function App() {
 
       setRevision(payload);
       setRevisionStatus("success");
+      setResolutionAction(null);
       await refreshProjectMemory(session);
     } catch (caught) {
       setRevisionStatus("error");
+      setResolutionAction(null);
       setRevisionError(
         caught instanceof Error
           ? caught.message
           : "The decision revision failed unexpectedly.",
+      );
+    }
+  }
+
+  async function handleDismissal() {
+    const reason = revisionReason.trim();
+    const conflict = result?.conflicts[0];
+    if (
+      reason.length < 3 ||
+      !conflict ||
+      !runId ||
+      !session ||
+      revisionStatus === "loading"
+    ) {
+      return;
+    }
+
+    setRevisionStatus("loading");
+    setResolutionAction("dismissal");
+    setRevisionError(null);
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/conflicts/dismiss`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${session.token}`,
+        },
+        body: JSON.stringify({
+          projectId: session.projectId,
+          agentRunId: runId,
+          priorMemoryId: conflict.priorMemoryId,
+          reason,
+        }),
+      });
+      const payload = (await response.json()) as
+        | ConflictDismissalResponse
+        | AnalyzeErrorResponse;
+      if (!response.ok || !("dismissedMemoryId" in payload)) {
+        throw new Error(
+          "message" in payload && payload.message
+            ? payload.message
+            : "The conflict could not be dismissed.",
+        );
+      }
+
+      setDismissal(payload);
+      setRevisionStatus("success");
+      setResolutionAction(null);
+      await refreshProjectMemory(session);
+    } catch (caught) {
+      setRevisionStatus("error");
+      setResolutionAction(null);
+      setRevisionError(
+        caught instanceof Error
+          ? caught.message
+          : "The conflict dismissal failed unexpectedly.",
       );
     }
   }
@@ -426,6 +502,18 @@ export function App() {
   const hasStoredRevision = Boolean(
     latestRevisionLink && revisionPrior && revisionReplacement,
   );
+  const latestDismissedMemory = memoryItems
+    .filter(
+      (item) =>
+        item.status === "dismissed" &&
+        memoryLinks.some(
+          (link) =>
+            link.relation === "conflicts_with" &&
+            link.fromMemoryId === item.id,
+        ),
+    )
+    .at(-1);
+  const hasStoredDismissal = Boolean(latestDismissedMemory);
   const nextQuestion =
     conflict?.confirmationQuestion ?? result?.nextQuestions[0] ?? null;
 
@@ -475,6 +563,8 @@ export function App() {
                 className={`memory-card${
                   item.status === "superseded"
                     ? " memory-card--superseded"
+                    : item.status === "dismissed"
+                      ? " memory-card--dismissed"
                     : item.status === "active" && item.id !== session?.initialDecision.id
                       ? " memory-card--replacement"
                       : ""
@@ -557,12 +647,16 @@ export function App() {
         <section className="panel result-panel" aria-labelledby="result-title">
           <div
             className="result-status"
-            data-conflict={Boolean(conflict && !revision)}
+            data-conflict={Boolean(conflict && !revision && !dismissal)}
           >
             {revision
               ? "Revision confirmed"
+              : dismissal
+                ? "Conflict dismissed"
               : hasStoredRevision && !result
                 ? "Stored revision"
+                : hasStoredDismissal && !result
+                  ? "Stored dismissal"
               : status === "loading"
               ? "Analyzing"
               : conflict
@@ -577,6 +671,8 @@ export function App() {
               {result?.summary ??
                 (hasStoredRevision
                   ? "The current decision supersedes an earlier client choice."
+                  : hasStoredDismissal
+                    ? "A proposed conflict was dismissed without changing the active decision."
                   : "Submit new client evidence to search project memory.")}
             </h2>
             <p className="evidence-link">
@@ -584,27 +680,38 @@ export function App() {
                 ? `Grounded in ${result.retrievedEvidenceIds.length} stored memory record(s).`
                 : hasStoredRevision
                   ? "Loaded from persisted CockroachDB revision history."
+                  : hasStoredDismissal
+                    ? "Loaded from persisted CockroachDB conflict history."
                   : "No stored evidence has been retrieved yet."}
             </p>
           </div>
           <div className="question-card">
             <span>
-              {revision || (hasStoredRevision && !result)
+              {dismissal
+                ? "Dismissal reason"
+                : hasStoredDismissal && !result
+                  ? "Dismissal reason"
+                : revision || (hasStoredRevision && !result)
                 ? "Decision revision"
                 : "Next question"}
             </span>
             <p>
-              {revision
+              {dismissal
+                ? dismissal.reason
+                : hasStoredDismissal && !result
+                  ? latestDismissedMemory?.rationale ??
+                    "No dismissal reason was recorded."
+                : revision
                 ? revision.reason
                 : hasStoredRevision && !result
                   ? latestRevisionLink?.reason ?? "No revision reason was recorded."
                 : nextQuestion ?? "The next grounded question will appear here."}
             </p>
           </div>
-          {conflict && runId && !revision ? (
+          {conflict && runId && !revision && !dismissal ? (
             <form className="revision-form" onSubmit={handleRevisionSubmit}>
               <div>
-                <label htmlFor="revision-reason">Reason for changing direction</label>
+                <label htmlFor="revision-reason">Reason for this decision</label>
                 <textarea
                   id="revision-reason"
                   value={revisionReason}
@@ -612,7 +719,7 @@ export function App() {
                   rows={3}
                   maxLength={2000}
                   disabled={revisionStatus === "loading"}
-                  placeholder="Record why the earlier decision should be superseded."
+                  placeholder="Record why the conflict should be confirmed or dismissed."
                 />
               </div>
               <div className="revision-actions">
@@ -624,9 +731,22 @@ export function App() {
                     revisionReason.trim().length < 3
                   }
                 >
-                  {revisionStatus === "loading"
+                  {resolutionAction === "revision"
                     ? "Saving revision..."
                     : "Confirm revision"}
+                </button>
+                <button
+                  className="button-secondary"
+                  type="button"
+                  onClick={() => void handleDismissal()}
+                  disabled={
+                    revisionStatus === "loading" ||
+                    revisionReason.trim().length < 3
+                  }
+                >
+                  {resolutionAction === "dismissal"
+                    ? "Dismissing conflict..."
+                    : "Dismiss conflict"}
                 </button>
               </div>
               {revisionError ? (

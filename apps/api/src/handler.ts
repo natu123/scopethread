@@ -19,6 +19,9 @@ import {
   ConfirmRevision,
   ConfirmRevisionError,
   ConfirmRevisionRequestSchema,
+  DismissConflict,
+  DismissConflictError,
+  DismissConflictRequestSchema,
   type DemoSessionRepository,
   InspectProjectMemoryRequestSchema,
   type MemoryInspectionRepository,
@@ -32,6 +35,7 @@ class ConfigurationError extends Error {
 let repositoryPromise: Promise<CockroachMemoryRepository> | undefined;
 let analyzeUseCasePromise: Promise<AnalyzeConversation> | undefined;
 let revisionUseCasePromise: Promise<ConfirmRevision> | undefined;
+let dismissalUseCasePromise: Promise<DismissConflict> | undefined;
 
 function json(
   statusCode: number,
@@ -129,6 +133,16 @@ function getRevisionUseCase(): Promise<ConfirmRevision> {
   return revisionUseCasePromise;
 }
 
+function getDismissalUseCase(): Promise<DismissConflict> {
+  dismissalUseCasePromise ??= getRepository()
+    .then((repository) => new DismissConflict(repository))
+    .catch((error: unknown) => {
+      dismissalUseCasePromise = undefined;
+      throw error;
+    });
+  return dismissalUseCasePromise;
+}
+
 function isRequestError(error: unknown): boolean {
   return (
     error instanceof SyntaxError ||
@@ -166,6 +180,7 @@ function bearerToken(event: APIGatewayProxyEventV2): string | null {
 export type HandlerDependencies = {
   getAnalyzeUseCase: () => Promise<Pick<AnalyzeConversation, "execute">>;
   getRevisionUseCase: () => Promise<Pick<ConfirmRevision, "execute">>;
+  getDismissalUseCase: () => Promise<Pick<DismissConflict, "execute">>;
   getSessionRepository: () => Promise<DemoSessionRepository>;
   getMemoryInspectionRepository: () => Promise<MemoryInspectionRepository>;
 };
@@ -173,6 +188,7 @@ export type HandlerDependencies = {
 const defaultDependencies: HandlerDependencies = {
   getAnalyzeUseCase,
   getRevisionUseCase,
+  getDismissalUseCase,
   getSessionRepository: getRepository,
   getMemoryInspectionRepository: getRepository,
 };
@@ -535,6 +551,78 @@ async function handleRequest(
       return json(502, {
         error: "REVISION_FAILED",
         message: "The decision revision could not be saved.",
+      });
+    }
+  }
+
+  if (method === "POST" && path === "/conflicts/dismiss") {
+    const startedAt = performance.now();
+    const requestId = event.requestContext.requestId;
+
+    try {
+      const request = DismissConflictRequestSchema.parse(
+        JSON.parse(event.body ?? "{}"),
+      );
+      const authorization = await authorizeDemoRequest(
+        event,
+        request.projectId,
+        false,
+        dependencies,
+      );
+      if (!authorization.authorized) {
+        return authorization.response;
+      }
+      const outcome = await (
+        await dependencies.getDismissalUseCase()
+      ).execute(request);
+
+      console.info(
+        JSON.stringify({
+          event: "conflict_dismissed",
+          requestId,
+          projectId: request.projectId,
+          agentRunId: request.agentRunId,
+          priorMemoryId: outcome.priorMemoryId,
+          dismissedMemoryId: outcome.dismissedMemoryId,
+          changed: outcome.changed,
+          durationMs: Math.round(performance.now() - startedAt),
+        }),
+      );
+      return json(200, { mode: "conflict-dismissed", ...outcome });
+    } catch (error) {
+      if (isRequestError(error)) {
+        return json(400, {
+          error: "INVALID_REQUEST",
+          message: "The conflict dismissal request body is invalid.",
+        });
+      }
+      if (error instanceof ConfigurationError) {
+        return json(503, {
+          error: "SERVICE_NOT_CONFIGURED",
+          message: error.message,
+        });
+      }
+      if (error instanceof DismissConflictError) {
+        const notFound = error.code === "CONFLICT_NOT_FOUND";
+        return json(notFound ? 404 : 409, {
+          error: error.code,
+          message: notFound
+            ? "The stored conflict proposal was not found."
+            : "The conflict can no longer be dismissed from this proposal.",
+        });
+      }
+
+      console.error(
+        JSON.stringify({
+          event: "conflict_dismissal_failed",
+          requestId,
+          category: error instanceof Error ? error.name : "UnknownError",
+          durationMs: Math.round(performance.now() - startedAt),
+        }),
+      );
+      return json(502, {
+        error: "CONFLICT_DISMISSAL_FAILED",
+        message: "The conflict could not be dismissed.",
       });
     }
   }

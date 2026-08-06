@@ -51,6 +51,11 @@ const revisionInput = {
   reason: "The client approved online booking after changing the launch scope.",
 };
 
+const dismissalInput = {
+  ...revisionInput,
+  reason: "The booking request was exploratory and is not approved scope.",
+};
+
 function statement(value: unknown): string {
   return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
 }
@@ -377,6 +382,142 @@ describe("CockroachMemoryRepository revisions", () => {
       "ROLLBACK",
     );
     expect(release).toHaveBeenCalledOnce();
+  });
+});
+
+describe("CockroachMemoryRepository conflict dismissal", () => {
+  it("dismisses only the proposed conflict memory and keeps the prior decision active", async () => {
+    const query = vi.fn(async (text: string) => {
+      const sql = statement(text);
+      if (sql.startsWith("SELECT replacement.id")) {
+        return { rowCount: 1, rows: [{ id: replacementMemoryId }] };
+      }
+      if (sql.startsWith("SELECT id, kind, status, rationale")) {
+        return {
+          rowCount: 2,
+          rows: [
+            {
+              id: priorMemoryId,
+              kind: "decision",
+              status: "active",
+              rationale: null,
+              updated_at: revisedAt,
+            },
+            {
+              id: replacementMemoryId,
+              kind: "requirement",
+              status: "proposed",
+              rationale: null,
+              updated_at: revisedAt,
+            },
+          ],
+        };
+      }
+      if (sql.startsWith("UPDATE memory_items")) {
+        return {
+          rowCount: 1,
+          rows: [
+            { rationale: dismissalInput.reason, updated_at: revisedAt },
+          ],
+        };
+      }
+      return { rowCount: 1, rows: [] };
+    });
+    const { repository, release } = repositoryWithClient(query);
+
+    await expect(repository.dismissConflict(dismissalInput)).resolves.toEqual({
+      status: "dismissed",
+      priorMemoryId,
+      dismissedMemoryId: replacementMemoryId,
+      reason: dismissalInput.reason,
+      dismissedAt: revisedAt.toISOString(),
+      changed: true,
+    });
+    const statements = query.mock.calls.map(([text]) => statement(text));
+    expect(statements.filter((sql) => sql.startsWith("UPDATE memory_items"))).toHaveLength(1);
+    expect(statements.find((sql) => sql.startsWith("UPDATE memory_items"))).toContain(
+      "status = 'dismissed'",
+    );
+    expect(release).toHaveBeenCalledOnce();
+  });
+
+  it("returns an idempotent dismissal without another update", async () => {
+    const query = vi.fn(async (text: string) => {
+      const sql = statement(text);
+      if (sql.startsWith("SELECT replacement.id")) {
+        return { rowCount: 1, rows: [{ id: replacementMemoryId }] };
+      }
+      if (sql.startsWith("SELECT id, kind, status, rationale")) {
+        return {
+          rowCount: 2,
+          rows: [
+            {
+              id: priorMemoryId,
+              kind: "decision",
+              status: "active",
+              rationale: null,
+              updated_at: revisedAt,
+            },
+            {
+              id: replacementMemoryId,
+              kind: "requirement",
+              status: "dismissed",
+              rationale: dismissalInput.reason,
+              updated_at: revisedAt,
+            },
+          ],
+        };
+      }
+      return { rowCount: 1, rows: [] };
+    });
+    const { repository } = repositoryWithClient(query);
+
+    await expect(repository.dismissConflict(dismissalInput)).resolves.toMatchObject({
+      status: "dismissed",
+      reason: dismissalInput.reason,
+      changed: false,
+    });
+    expect(
+      query.mock.calls
+        .map(([text]) => statement(text))
+        .some((sql) => sql.startsWith("UPDATE memory_items")),
+    ).toBe(false);
+  });
+
+  it("rejects dismissal after the prior decision is no longer active", async () => {
+    const query = vi.fn(async (text: string) => {
+      const sql = statement(text);
+      if (sql.startsWith("SELECT replacement.id")) {
+        return { rowCount: 1, rows: [{ id: replacementMemoryId }] };
+      }
+      if (sql.startsWith("SELECT id, kind, status, rationale")) {
+        return {
+          rowCount: 2,
+          rows: [
+            {
+              id: priorMemoryId,
+              kind: "decision",
+              status: "superseded",
+              rationale: null,
+              updated_at: revisedAt,
+            },
+            {
+              id: replacementMemoryId,
+              kind: "requirement",
+              status: "proposed",
+              rationale: null,
+              updated_at: revisedAt,
+            },
+          ],
+        };
+      }
+      return { rowCount: 1, rows: [] };
+    });
+    const { repository } = repositoryWithClient(query);
+
+    await expect(repository.dismissConflict(dismissalInput)).resolves.toEqual({
+      status: "invalid_state",
+    });
   });
 });
 

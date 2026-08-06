@@ -212,6 +212,15 @@ h2 {
   background: #e9f0e8;
 }
 
+.memory-card--dismissed {
+  border-left-color: #9a8e78;
+  background: #f2eee6;
+}
+
+.memory-card--dismissed .memory-meta {
+  color: #766954;
+}
+
 .memory-meta {
   display: flex;
   justify-content: space-between;
@@ -288,6 +297,16 @@ button {
 
 button:hover {
   background: #304439;
+}
+
+.button-secondary {
+  border: 1px solid #879087;
+  color: #3f5648;
+  background: transparent;
+}
+
+.button-secondary:hover {
+  background: #e9eee8;
 }
 
 button:disabled,
@@ -376,8 +395,12 @@ textarea:disabled {
 .revision-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 18px;
+}
+
+.revision-actions small {
+  margin-right: auto;
 }
 
 .revision-chain {

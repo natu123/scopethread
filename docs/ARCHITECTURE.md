@@ -85,6 +85,13 @@ This separation keeps both CockroachDB integrations meaningful:
 4. The transaction stores an explicit revision edge between the two decisions.
 5. Lambda returns the updated decision chain.
 
+### Dismiss a false-positive conflict
+
+1. The browser submits the stored conflict proposal, prior decision ID, and dismissal reason.
+2. Lambda verifies that the proposal belongs to the successful agent run and the same project.
+3. A CockroachDB transaction locks both memories, leaves the prior active decision unchanged, and marks only the proposed replacement as dismissed.
+4. The dismissal reason remains available through memory inspection after a page reload.
+
 ### Inspect persisted memory
 
 1. The browser sends its bearer token and project ID to `GET /memory`.
