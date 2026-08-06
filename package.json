@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "aws:store-runtime-secret": "node --env-file=.env.local scripts/store-runtime-secret.mjs",
     "check": "npm run typecheck && npm run test && npm run validate:migrations && npm run validate:infra && npm run build",
     "db:check": "node --env-file=.env.local scripts/check-database.mjs",
     "db:migrate": "node --env-file=.env.local scripts/migrate-database.mjs",
@@ -34,6 +35,7 @@
     "node": ">=24.0.0"
   },
   "devDependencies": {
+    "@aws-sdk/client-ssm": "^3.1102.0",
     "@aws-sdk/client-sts": "^3.1102.0",
     "@types/node": "26.1.2",
     "esbuild": "0.28.1",

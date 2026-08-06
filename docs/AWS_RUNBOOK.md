@@ -129,3 +129,19 @@ The guarded provisioner:
 5. Writes the runtime connection string only to ignored `.env.runtime.local` as `RUNTIME_DATABASE_URL`.
 
 Do not copy that value into a command, commit, issue, screenshot, or chat. A later deployment step must transfer it directly to the Parameter Store `SecureString` without displaying it.
+
+## Store the Runtime Connection in Parameter Store
+
+After `.env.runtime.local` has been generated, verify the local gate:
+
+```powershell
+npm run aws:store-runtime-secret
+```
+
+After explicit approval, store it with:
+
+```powershell
+npm run aws:store-runtime-secret -- --apply
+```
+
+The script uses the AWS SDK rather than placing the connection string in command-line arguments. It refuses root, requires `scopethread-dev` in Singapore, writes only the fixed `/scopethread/prod/database-url` parameter as a Standard `SecureString`, and verifies only non-secret metadata. The value is never printed.

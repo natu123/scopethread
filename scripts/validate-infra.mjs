@@ -193,6 +193,29 @@ for (const modelId of requiredModelResources) {
   }
 }
 
+const runtimeParameterStatements = statements.filter((statement) => {
+  const actions = Array.isArray(statement.Action)
+    ? statement.Action
+    : [statement.Action];
+  return actions.includes("ssm:PutParameter");
+});
+if (runtimeParameterStatements.length !== 1) {
+  throw new Error("Development policy must contain one runtime parameter writer.");
+}
+const runtimeParameterStatement = runtimeParameterStatements[0];
+const runtimeParameterActions = Array.isArray(runtimeParameterStatement.Action)
+  ? runtimeParameterStatement.Action
+  : [runtimeParameterStatement.Action];
+if (
+  !runtimeParameterActions.includes("ssm:GetParameter") ||
+  runtimeParameterStatement.Resource !==
+    "arn:aws:ssm:ap-southeast-1:*:parameter/scopethread/prod/database-url"
+) {
+  throw new Error(
+    "Runtime parameter permissions must be scoped to the fixed Singapore parameter.",
+  );
+}
+
 if (invokeResources.includes("*")) {
   throw new Error("Bedrock invoke permissions must not use a wildcard resource.");
 }

@@ -26,6 +26,15 @@
         "arn:aws:bedrock:ap-southeast-1:*:inference-profile/global.amazon.nova-2-lite-v1:0",
         "arn:aws:bedrock:*::foundation-model/amazon.nova-2-lite-v1:0"
       ]
+    },
+    {
+      "Sid": "ManageScopeThreadRuntimeDatabaseParameter",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:PutParameter"
+      ],
+      "Resource": "arn:aws:ssm:ap-southeast-1:*:parameter/scopethread/prod/database-url"
     }
   ]
 }

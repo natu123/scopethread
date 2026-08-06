@@ -16,6 +16,8 @@ Migration `0003_runtime_role.sql` prepares a non-login, least-privilege role for
 
 The guarded runtime-user provisioner creates or rotates `scopethread_app`, verifies its inherited privileges through a real login, and saves the unprinted connection string only to the ignored `.env.runtime.local` file. Provisioning remains an explicit live-database gate.
 
+The guarded Parameter Store workflow transfers that runtime connection through the AWS SDK to the fixed `/scopethread/prod/database-url` Standard `SecureString` without placing it in command-line arguments or output. Live storage remains an explicit AWS gate.
+
 Authenticated memory inspection is implemented locally. The browser reloads project-scoped items and links from CockroachDB, so active decisions, superseded decisions, source quotes, rationales, and revision chains survive a page reload instead of depending on temporary browser state.
 
 False-positive conflict dismissal is implemented locally. A dismissal records its reason on the proposed memory while leaving the prior active decision unchanged, and the persisted dismissal remains visible after a page reload.
