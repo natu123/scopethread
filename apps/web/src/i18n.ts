@@ -165,6 +165,8 @@ const demoTranslations: Record<string, string> = {
 };
 
 const apiMessageTranslations: Record<string, string> = {
+  "The agent could not analyze this conversation.":
+    "エージェントはこの会話を分析できませんでした。",
   "A valid demo session is required.": "有効なデモセッションが必要です。",
   "The demo session is invalid or expired.":
     "デモセッションが無効か、有効期限が切れています。",

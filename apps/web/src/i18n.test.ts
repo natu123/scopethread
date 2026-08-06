@@ -6,6 +6,7 @@ import {
   groundedRecordsLabel,
   memoryKindLabel,
   memoryStatusLabel,
+  translateApiMessage,
   translateDemoText,
 } from "./i18n.js";
 
@@ -29,5 +30,14 @@ describe("web localization", () => {
       translateDemoText("Do not include online booking in the launch scope.", "ja"),
     ).toBe("初回公開の対象にオンライン予約を含めない。");
     expect(translateDemoText("顧客独自の原文", "ja")).toBe("顧客独自の原文");
+  });
+
+  it("translates the sanitized analysis failure", () => {
+    expect(
+      translateApiMessage(
+        "The agent could not analyze this conversation.",
+        "ja",
+      ),
+    ).toBe("エージェントはこの会話を分析できませんでした。");
   });
 });

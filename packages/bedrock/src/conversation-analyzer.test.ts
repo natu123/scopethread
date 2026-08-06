@@ -49,9 +49,19 @@ function modelResult(overrides: Record<string, unknown> = {}) {
 }
 
 function analyzerFor(result: unknown) {
+  return analyzerForResponses([JSON.stringify(result)]);
+}
+
+function analyzerForResponses(texts: string[]) {
+  const fallbackText = texts.at(-1) ?? "";
   const send = vi.fn().mockResolvedValue({
-    output: { message: { content: [{ text: JSON.stringify(result) }] } },
+    output: { message: { content: [{ text: fallbackText }] } },
   });
+  for (const text of texts) {
+    send.mockResolvedValueOnce({
+      output: { message: { content: [{ text }] } },
+    });
+  }
   return {
     analyzer: new BedrockConversationAnalyzer(
       { send } as unknown as BedrockRuntimeClient,
@@ -108,6 +118,52 @@ describe("BedrockConversationAnalyzer", () => {
     expect(JSON.parse(commandInput.messages[0].content[0].text)).toMatchObject({
       responseLocale: "ja",
     });
+  });
+
+  it.each([
+    ["a fenced object", (json: string) => `\u0060\u0060\u0060json\n${json}\n\u0060\u0060\u0060`],
+    ["an object with surrounding prose", (json: string) => `Result follows:\n${json}\nDone.`],
+  ])("accepts %s without a paid retry", async (_label, wrap) => {
+    const { analyzer, send } = analyzerForResponses([
+      wrap(JSON.stringify(modelResult())),
+    ]);
+
+    const result = await analyzer.analyze(context);
+
+    expect(result.conflicts[0]?.priorMemoryId).toBe(priorMemoryId);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries once with a stricter repair request after invalid output", async () => {
+    const { analyzer, send } = analyzerForResponses([
+      "This is not JSON.",
+      JSON.stringify(modelResult()),
+    ]);
+
+    const result = await analyzer.analyze(context);
+
+    expect(result.conflicts[0]?.priorMemoryId).toBe(priorMemoryId);
+    expect(send).toHaveBeenCalledTimes(2);
+    const repairInput = send.mock.calls[1]?.[0]?.input;
+    expect(repairInput.inferenceConfig.maxTokens).toBe(2400);
+    expect(repairInput.system[0].text).toContain(
+      "The previous generation failed strict parsing or validation.",
+    );
+    expect(JSON.parse(repairInput.messages[0].content[0].text)).toMatchObject({
+      repairAttempt: true,
+    });
+  });
+
+  it("stops after one repair attempt when output remains invalid", async () => {
+    const { analyzer, send } = analyzerForResponses([
+      "invalid first response",
+      "invalid repair response",
+    ]);
+
+    await expect(analyzer.analyze(context)).rejects.toThrow(
+      "invalid JSON syntax",
+    );
+    expect(send).toHaveBeenCalledTimes(2);
   });
 
   it("rejects a conflict that cites memory outside retrieved evidence", async () => {
