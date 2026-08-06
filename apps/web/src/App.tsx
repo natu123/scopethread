@@ -174,7 +174,9 @@ export function App() {
     "loading" | "ready" | "error"
   >("loading");
   const [sessionError, setSessionError] = useState<string | null>(null);
-  const [conversation, setConversation] = useState(defaultConversation.en);
+  const [conversation, setConversation] = useState(
+    () => defaultConversation[locale],
+  );
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
     "idle",
@@ -602,7 +604,13 @@ export function App() {
       <main id="top" className="workspace">
         <section className="intro" aria-labelledby="page-title">
           <p className="eyebrow">{t.introEyebrow}</p>
-          <h1 id="page-title">{t.introTitle}</h1>
+          <h1 id="page-title">
+            {t.introTitleLines.map((line) => (
+              <span className="intro-title-line" key={line}>
+                {line}
+              </span>
+            ))}
+          </h1>
           <p>{t.introBody}</p>
         </section>
 

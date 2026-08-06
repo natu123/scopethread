@@ -20,6 +20,10 @@ describe("web localization", () => {
 
   it("provides natural Japanese labels without spaced Japanese prose", () => {
     expect(copy.ja.introTitle).toBe("顧客との意思決定を、すべてつなげて残す。");
+    expect(copy.ja.introTitleLines).toEqual([
+      "顧客との意思決定を、",
+      "すべてつなげて残す。",
+    ]);
     expect(activeDecisionLabel(2, "ja")).toBe("有効な決定 2件");
     expect(memoryKindLabel("open_question", "ja")).toBe("未決事項");
     expect(memoryStatusLabel("superseded", "ja")).toBe("更新済み");

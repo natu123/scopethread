@@ -16,6 +16,7 @@ export const copy = {
     sessionUnavailable: "Session unavailable",
     introEyebrow: "Website requirements memory",
     introTitle: "Keep every client decision connected.",
+    introTitleLines: ["Keep every client decision connected."],
     introBody:
       "ScopeThread turns conversations into traceable requirements, decisions, revisions, and next questions.",
     projectMemory: "Project memory",
@@ -90,6 +91,7 @@ export const copy = {
     sessionUnavailable: "セッションを利用できません",
     introEyebrow: "Webサイト要件の記憶",
     introTitle: "顧客との意思決定を、すべてつなげて残す。",
+    introTitleLines: ["顧客との意思決定を、", "すべてつなげて残す。"],
     introBody:
       "ScopeThreadは、会話を追跡可能な要件、決定、修正履歴、次の質問へ変換します。",
     projectMemory: "プロジェクト記憶",
