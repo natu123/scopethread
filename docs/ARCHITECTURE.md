@@ -203,7 +203,7 @@ scopethread/
 - The Singapore Bedrock catalog reports `cohere.embed-multilingual-v3`, `amazon.nova-2-lite-v1:0`, and `global.amazon.nova-2-lite-v1:0` as active.
 - The CockroachDB Cloud connection, migrations, structured demo memory, and vector index are verified.
 - Live Cohere embedding inference is verified through `scopethread-dev`; Nova agent-memory inference remains pending quota activation.
-- The one-time AWS deployment bootstrap and application stack are live; static web publication and CockroachDB Cloud Managed MCP verification remain pending.
+- The one-time AWS deployment bootstrap, application stack, and static web application are live; CockroachDB Cloud Managed MCP verification remains pending.
 - The Managed MCP read-only audit runbook is prepared; live OAuth authorization and verification remain pending.
 - Public demo-session controls pass local API, database, SAM, and browser E2E verification. Migration `0002_demo_session_access.sql` is applied and its columns and token index are verified on the live cluster.
 - Migration `0003_runtime_role.sql` is applied on the live cluster. The `scopethread_runtime` role is verified as `NOLOGIN`, its six-table grant set matches the least-privilege design, and the built-in `public` role no longer has public-schema `CREATE`.
@@ -211,6 +211,7 @@ scopethread/
 - The `ScopeThreadBedrockDevelopment` inline policy is applied to `scopethread-dev`. The AWS copy matches the repository JSON, and IAM simulation verifies the fixed SSM parameter and selected Bedrock model allows plus denials for unrelated resources and administrative actions.
 - The guarded deployment bootstrap is live with all four resources at `CREATE_COMPLETE`; the artifact bucket is verified in Singapore through `scopethread-dev`. The application deployer is implemented, both templates pass SAM lint, and the live application deployment is complete.
 - The `scopethread` application stack is live with all 15 resources at `CREATE_COMPLETE`. API health is ready, and a no-Bedrock smoke test verifies Lambda SSM decryption, runtime SQL login, demo-session persistence, and project-memory reload without printing the bearer token.
+- The CloudFront application is live at `https://d2kn7tl59k7usc.cloudfront.net/`. HTTP 200 delivery, security headers, hashed production assets, an anonymous demo-session bootstrap, the initial CockroachDB-backed decision, and an enabled analysis action are verified in a browser without invoking Bedrock.
 
 Cloud mutations and paid model invocations require an explicit execution gate. The live vector-memory script also verifies its AWS caller and refuses root credentials.
 

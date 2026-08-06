@@ -1,6 +1,6 @@
 # ScopeThread MVP Requirements
 
-Status: Live demo-session schema verified; public deployment pending
+Status: Public AWS application and demo-session bootstrap verified; paid Nova flow pending
 
 ## Product Goal
 

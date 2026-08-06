@@ -138,7 +138,7 @@ Suggested Devpost tags:
 ## Submission links
 
 - Source code: https://github.com/natu123/scopethread
-- Public demo: `[PUBLIC_DEMO_URL]`
+- Public demo: [https://d2kn7tl59k7usc.cloudfront.net/](https://d2kn7tl59k7usc.cloudfront.net/)
 - Video demo: `[VIDEO_DEMO_URL]`
 
 ## Video outline
@@ -157,7 +157,7 @@ Target duration: 2 minutes 40 seconds.
 
 ## Final verification checklist
 
-- [ ] Replace `[PUBLIC_DEMO_URL]` with the verified CloudFront URL.
+- [x] Confirm the public demo link uses the verified CloudFront URL.
 - [ ] Replace `[VIDEO_DEMO_URL]` with the public video URL.
 - [ ] Verify Nova live inference from `scopethread-dev`.
 - [ ] Verify the live public E2E succeeds from the deployed stack.

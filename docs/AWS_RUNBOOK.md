@@ -121,6 +121,8 @@ The guarded deployer reads only the fixed bootstrap stack outputs, runs SAM lint
 
 Deploying the SAM stack and publishing the browser build are separate external changes. The SAM stack must exist successfully before this step.
 
+Live status: the static web application was published and verified at `https://d2kn7tl59k7usc.cloudfront.net/` on 2026-08-06. Re-publishing changes the retained web bucket and creates a new CloudFront invalidation, so treat every later run as a separate explicit gate.
+
 First, verify the local safety gate. This does not call AWS:
 
 ```powershell
