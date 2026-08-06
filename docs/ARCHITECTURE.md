@@ -1,6 +1,6 @@
 # ScopeThread MVP Architecture
 
-Status: Local end-to-end workflow and demo-session controls implemented; live migration, Nova verification, and deployment pending
+Status: Demo-session schema verified live; Nova verification and AWS deployment pending
 
 ## Decision Summary
 
@@ -179,9 +179,9 @@ scopethread/
 - AWS CLI v2 and browser-based temporary authentication are verified.
 - The Singapore Bedrock catalog reports `cohere.embed-multilingual-v3`, `amazon.nova-2-lite-v1:0`, and `global.amazon.nova-2-lite-v1:0` as active.
 - The CockroachDB Cloud connection, migrations, structured demo memory, and vector index are verified.
-- Live Bedrock inference is pending sign-in as the scoped `scopethread-dev` IAM user.
+- Live Cohere embedding inference is verified through `scopethread-dev`; Nova agent-memory inference remains pending quota activation.
 - AWS SAM deployment and CockroachDB Cloud Managed MCP verification remain pending.
-- Public demo-session controls pass local API, database, SAM, and browser E2E verification. Migration `0002_demo_session_access.sql` remains unapplied to the live cluster.
+- Public demo-session controls pass local API, database, SAM, and browser E2E verification. Migration `0002_demo_session_access.sql` is applied and its columns and token index are verified on the live cluster.
 
 Cloud mutations and paid model invocations require an explicit execution gate. The live vector-memory script also verifies its AWS caller and refuses root credentials.
 

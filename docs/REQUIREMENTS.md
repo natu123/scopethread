@@ -1,6 +1,6 @@
 # ScopeThread MVP Requirements
 
-Status: Implemented locally; live migration and public deployment pending
+Status: Live demo-session schema verified; public deployment pending
 
 ## Product Goal
 
@@ -146,5 +146,4 @@ The MVP is complete when:
 ## Open Decisions
 
 - Verify successful runtime invocation of `global.amazon.nova-2-lite-v1:0` and `cohere.embed-multilingual-v3` through the scoped development identity.
-- Apply and verify the short-lived anonymous-session migration against CockroachDB Cloud.
 - Confirm CockroachDB Cloud Managed MCP authentication before the final demo.

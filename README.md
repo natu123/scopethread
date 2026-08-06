@@ -10,7 +10,7 @@ ScopeThread has a verified application scaffold for the web interface, Lambda AP
 
 Agent-run observability is implemented locally. Every valid analysis receives a durable run ID, model identifiers, status, duration, and a safe error category. Successful memory writes and the run's `succeeded` transition share one CockroachDB transaction; failed model calls do not create partial memory.
 
-Short-lived public demo sessions are also implemented locally. Each browser session receives an opaque bearer token, while CockroachDB stores only its SHA-256 hash. The API verifies the token, project ownership, expiry, and an atomic per-session analysis allowance before invoking Bedrock. API Gateway route throttling provides an additional coarse abuse-control layer. Migration `0002_demo_session_access.sql` and the AWS stack have not been applied yet.
+Short-lived public demo sessions are implemented, and migration `0002_demo_session_access.sql` is verified on the live CockroachDB cluster. Each browser session receives an opaque bearer token, while CockroachDB stores only its SHA-256 hash. The API verifies the token, project ownership, expiry, and an atomic per-session analysis allowance before invoking Bedrock. API Gateway route throttling provides an additional coarse abuse-control layer. The AWS stack has not been deployed yet.
 
 ## Design Documents
 
