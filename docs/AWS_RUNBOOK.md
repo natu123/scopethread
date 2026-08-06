@@ -12,6 +12,7 @@ This runbook keeps ScopeThread development off the AWS account root user and avo
 - Development policy: `infra/iam/scopethread-bedrock-development-policy.json`.
 - Applied inline policy: `ScopeThreadBedrockDevelopment`, structurally matched and IAM-simulated on 2026-08-06.
 - Deployment bootstrap: `scopethread-bootstrap` reached `CREATE_COMPLETE` on 2026-08-06.
+- Nova quota review: AWS Support confirmed that the `ap-southeast-1` request is under review, typically for three to five business days. Tokens per day is not directly adjustable and scales automatically when Tokens per minute is increased.
 
 ## One-Time Console Setup
 

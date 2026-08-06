@@ -6,7 +6,7 @@ ScopeThread is a persistent-memory agent for web production requirements. It tur
 
 ## Status
 
-ScopeThread has a verified application scaffold for the web interface, Lambda API, core domain workflow, Bedrock adapters, CockroachDB vector queries, database migration, and AWS SAM infrastructure. The CockroachDB Cloud connection, migration, vector index, fictional demo memory, live Cohere embedding retrieval, one-time deployment bootstrap, AWS application stack, and [public CloudFront application](https://d2kn7tl59k7usc.cloudfront.net/) have been verified in Singapore. The deployed API health, a no-Bedrock session-to-memory smoke path, and the public browser session pass against the runtime SQL identity. Nova 2 Lite live inference is waiting for AWS to activate the new account's non-zero daily token quota.
+ScopeThread has a verified application scaffold for the web interface, Lambda API, core domain workflow, Bedrock adapters, CockroachDB vector queries, database migration, and AWS SAM infrastructure. The CockroachDB Cloud connection, migration, vector index, fictional demo memory, live Cohere embedding retrieval, one-time deployment bootstrap, AWS application stack, and [public CloudFront application](https://d2kn7tl59k7usc.cloudfront.net/) have been verified in Singapore. The deployed API health, a no-Bedrock session-to-memory smoke path, the public browser session, and a single-cluster read-only Managed MCP connection pass against the live system. Nova 2 Lite live inference is waiting for AWS to complete its `ap-southeast-1` quota review; AWS stated that increasing Tokens per minute will automatically scale Tokens per day.
 
 Agent-run observability is implemented locally. Every valid analysis receives a durable run ID, model identifiers, status, duration, and a safe error category. Successful memory writes and the run's `succeeded` transition share one CockroachDB transaction; failed model calls do not create partial memory.
 
@@ -32,7 +32,7 @@ Authenticated memory inspection is implemented locally. The browser reloads proj
 
 False-positive conflict dismissal is implemented locally. A dismissal records its reason on the proposed memory while leaving the prior active decision unchanged, and the persisted dismissal remains visible after a page reload.
 
-The CockroachDB Cloud Managed MCP audit is prepared as a single-cluster, OAuth, read-only workflow. Live authorization and verification remain an explicit external gate.
+The CockroachDB Cloud Managed MCP connection is verified live as a single-cluster, OAuth, read-only workflow. Allowlisted queries verified the vector index, a succeeded Cohere agent run, and its fictional persisted decision without reading embeddings or session-token data. The final public Nova run and `supersedes` decision chain remain pending.
 
 ## Design Documents
 
@@ -169,7 +169,7 @@ The planned hackathon integrations are:
 | Technology | Planned role | Status |
 | --- | --- | --- |
 | CockroachDB Distributed Vector Indexing | Retrieve semantically related conversations and decisions. | Live embedding retrieval verified. |
-| CockroachDB Cloud Managed MCP Server | Provide controlled agent access to project memory. | Read-only audit runbook ready; live verification pending. |
+| CockroachDB Cloud Managed MCP Server | Provide controlled agent access to project memory. | Single-cluster OAuth and preliminary read-only audit verified live; final revision-chain audit pending. |
 | Amazon Bedrock | Extract, reason over, and respond with project context. | Live Cohere embedding verified; Nova agent-memory gate pending. |
 | AWS Lambda | Run the serverless agent workflow. | Stack, API health, SSM runtime configuration, and CockroachDB session-memory smoke path verified live. |
 

@@ -82,7 +82,7 @@ The first deployment bootstrap reached the IAM user's aggregate inline-policy si
 
 #### External model activation
 
-The Cohere embedding path required accepting the third-party model agreement before live inference. Amazon Nova live verification also depends on the AWS account's available model quota. The repository keeps this external account state separate from code-level completion and does not claim live verification before it succeeds.
+The Cohere embedding path required accepting the third-party model agreement before live inference. Amazon Nova live verification also depends on the AWS account's available model quota. AWS Support confirmed that the Singapore request is under review and that Tokens per day scales automatically with an approved Tokens per minute increase. The repository keeps this external account state separate from code-level completion and does not claim live verification before it succeeds.
 
 ### What we learned
 
@@ -106,10 +106,8 @@ The Cohere embedding path required accepting the third-party model agreement bef
 ### What's next
 
 - Complete the live Amazon Nova quota gate.
-- Apply and verify the least-privilege CockroachDB runtime identity.
-- Deploy the SAM stack and static browser application.
 - Run the guarded public demo E2E from the CloudFront URL.
-- Complete the read-only CockroachDB Cloud Managed MCP audit.
+- Repeat the read-only CockroachDB Cloud Managed MCP audit with the public Nova run and verify its revision chain.
 - Record the final video and replace all submission placeholders.
 
 ## Built with
@@ -161,7 +159,7 @@ Target duration: 2 minutes 40 seconds.
 - [ ] Replace `[VIDEO_DEMO_URL]` with the public video URL.
 - [ ] Verify Nova live inference from `scopethread-dev`.
 - [ ] Verify the live public E2E succeeds from the deployed stack.
-- [ ] Verify the MCP OAuth connection is single-cluster and read-only.
+- [x] Verify the MCP OAuth connection is single-cluster and read-only.
 - [ ] Confirm the video contains no account IDs, cluster IDs, tokens, credentials, or real client data.
 - [ ] Confirm every accomplishment above has current evidence.
 - [ ] Re-read the current hackathon rules before submission.

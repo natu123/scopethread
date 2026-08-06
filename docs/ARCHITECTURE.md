@@ -1,6 +1,6 @@
 # ScopeThread MVP Architecture
 
-Status: AWS API and demo-session persistence verified live; Nova inference and web publication pending
+Status: AWS application, demo-session persistence, and preliminary read-only MCP audit verified live; Nova inference and final revision audit pending
 
 ## Decision Summary
 
@@ -202,9 +202,9 @@ scopethread/
 - AWS CLI v2 and browser-based temporary authentication are verified.
 - The Singapore Bedrock catalog reports `cohere.embed-multilingual-v3`, `amazon.nova-2-lite-v1:0`, and `global.amazon.nova-2-lite-v1:0` as active.
 - The CockroachDB Cloud connection, migrations, structured demo memory, and vector index are verified.
-- Live Cohere embedding inference is verified through `scopethread-dev`; Nova agent-memory inference remains pending quota activation.
-- The one-time AWS deployment bootstrap, application stack, and static web application are live; CockroachDB Cloud Managed MCP verification remains pending.
-- The Managed MCP read-only audit runbook is prepared; live OAuth authorization and verification remain pending.
+- Live Cohere embedding inference is verified through `scopethread-dev`; Nova agent-memory inference remains pending an AWS Support quota review in Singapore. AWS stated a typical review time of three to five business days and confirmed that Tokens per day scales automatically with an approved Tokens per minute increase.
+- The one-time AWS deployment bootstrap, application stack, static web application, and single-cluster CockroachDB Cloud Managed MCP connection are live.
+- Managed MCP OAuth was authorized for read access only. Allowlisted queries verified the project-prefixed vector index, the latest succeeded Cohere run, and its fictional persisted decision without requesting embeddings or demo-session data; the final Nova run and revision chain remain pending.
 - Public demo-session controls pass local API, database, SAM, and browser E2E verification. Migration `0002_demo_session_access.sql` is applied and its columns and token index are verified on the live cluster.
 - Migration `0003_runtime_role.sql` is applied on the live cluster. The `scopethread_runtime` role is verified as `NOLOGIN`, its six-table grant set matches the least-privilege design, and the built-in `public` role no longer has public-schema `CREATE`.
 - The live `scopethread_app` login inherits only `scopethread_runtime`; a real runtime connection verifies its identity, table privileges, schema boundary, and read access. Its connection string is stored as the fixed Parameter Store Standard `SecureString`; metadata verification excludes the encrypted value.

@@ -74,6 +74,19 @@ npm run validate:mcp-audit
 
 This validation does not connect to CockroachDB Cloud or execute any SQL.
 
+## Preliminary Live Verification
+
+On 2026-08-06, the Codex connection was configured with the single-cluster header and authenticated through OAuth with read access only. No API key or authorization header was stored in `config.toml`, and no write tool was invoked.
+
+The allowlisted MCP tools verified:
+
+- `SHOW INDEXES FROM defaultdb.public.memory_items` returns `memory_items_embedding_idx` with `project_id` followed by `embedding`;
+- the latest succeeded run is the Cohere embedding verification run with a null error code;
+- its fictional active decision, rationale, and source quote are persisted;
+- the query excludes the embedding value, demo sessions, token hashes, and credentials.
+
+The preliminary run has no `supersedes` link because it predates the pending Nova conflict-and-revision flow. Do not present this preliminary result as the final decision-chain audit. Repeat the full procedure below with the public application run ID after Nova quota activation.
+
 ## Live Audit Procedure
 
 ### 1. Capture the run ID
