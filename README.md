@@ -14,6 +14,12 @@ Short-lived public demo sessions are implemented, and migration `0002_demo_sessi
 
 Migration `0003_runtime_role.sql` is applied and verified on the live CockroachDB cluster. Its non-login, least-privilege role for the Lambda database identity intentionally excludes `DELETE`, object creation, grant delegation, and schema-wide future privileges. Public-schema object creation is also verified as revoked from the built-in `public` role.
 
+Re-check the live schema and runtime-role boundaries without applying migrations:
+
+```powershell
+npm run db:verify
+```
+
 The guarded runtime-user provisioner creates or rotates `scopethread_app`, verifies its inherited privileges through a real login, and saves the unprinted connection string only to the ignored `.env.runtime.local` file. Provisioning remains an explicit live-database gate.
 
 The guarded Parameter Store workflow transfers that runtime connection through the AWS SDK to the fixed `/scopethread/prod/database-url` Standard `SecureString` without placing it in command-line arguments or output. Live storage remains an explicit AWS gate.

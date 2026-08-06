@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import pg from "pg";
 
 const shouldApply = process.argv.includes("--apply");
+const shouldVerify = process.argv.includes("--verify");
 const connectionString = process.env.DATABASE_URL?.trim();
 const migrationsUrl = new URL("../packages/database/migrations/", import.meta.url);
 const expectedTables = [
@@ -26,8 +27,13 @@ const expectedRuntimeTablePrivileges = new Map([
   ["projects", ["INSERT", "SELECT"]],
 ]);
 
-if (!shouldApply) {
-  console.error("Migration not applied. Re-run with --apply after reviewing the target.");
+if (shouldApply && shouldVerify) {
+  console.error("Choose either --apply or --verify, not both.");
+  process.exitCode = 1;
+} else if (!shouldApply && !shouldVerify) {
+  console.error(
+    "Migration not applied. Re-run with --apply, or inspect existing live state with --verify.",
+  );
   process.exitCode = 1;
 } else if (!connectionString) {
   console.error("DATABASE_URL is empty in .env.local.");
@@ -47,13 +53,17 @@ if (!shouldApply) {
   });
 
   try {
-    for (const migrationFile of migrationFiles) {
-      const migrationSql = await readFile(
-        new URL(migrationFile, migrationsUrl),
-        "utf8",
-      );
-      await pool.query(migrationSql);
-      console.log(`Migration ${migrationFile} applied successfully.`);
+    if (shouldApply) {
+      for (const migrationFile of migrationFiles) {
+        const migrationSql = await readFile(
+          new URL(migrationFile, migrationsUrl),
+          "utf8",
+        );
+        await pool.query(migrationSql);
+        console.log(`Migration ${migrationFile} applied successfully.`);
+      }
+    } else {
+      console.log("Migration application skipped; verifying existing live state.");
     }
 
     const tablesResult = await pool.query(
@@ -78,9 +88,18 @@ if (!shouldApply) {
     );
     const sessionIndexesResult = await pool.query("SHOW INDEX FROM demo_sessions");
     const runtimeRoleResult = await pool.query(
-      `SELECT username
+      `SELECT username, options
        FROM [SHOW ROLES]
        WHERE username = 'scopethread_runtime'`,
+    );
+    const runtimeMembershipsResult = await pool.query(
+      "SHOW GRANTS ON ROLE FOR scopethread_runtime",
+    );
+    const runtimeDatabaseGrantsResult = await pool.query(
+      "SHOW GRANTS ON DATABASE defaultdb FOR scopethread_runtime",
+    );
+    const runtimeSchemaGrantsResult = await pool.query(
+      "SHOW GRANTS ON SCHEMA public FOR scopethread_runtime",
     );
     const runtimeTableGrantsResult = await pool.query(
       `SELECT table_name, privilege_type
@@ -126,6 +145,36 @@ if (!shouldApply) {
     if (runtimeRoleResult.rowCount !== 1) {
       throw new Error("Runtime role scopethread_runtime was not found.");
     }
+    const runtimeRoleOptions = runtimeRoleResult.rows[0]?.options ?? [];
+    if (!runtimeRoleOptions.includes("NOLOGIN")) {
+      throw new Error("Runtime role scopethread_runtime must use NOLOGIN.");
+    }
+    if (
+      runtimeMembershipsResult.rows.some(
+        (row) => row.role_name === "admin",
+      )
+    ) {
+      throw new Error("Runtime role scopethread_runtime must not inherit admin.");
+    }
+    if (
+      !runtimeDatabaseGrantsResult.rows.some(
+        (row) => row.privilege_type === "CONNECT",
+      )
+    ) {
+      throw new Error("Runtime role scopethread_runtime requires database CONNECT.");
+    }
+    if (
+      !runtimeSchemaGrantsResult.rows.some(
+        (row) => row.privilege_type === "USAGE",
+      ) ||
+      runtimeSchemaGrantsResult.rows.some(
+        (row) => row.privilege_type === "CREATE",
+      )
+    ) {
+      throw new Error(
+        "Runtime role scopethread_runtime requires schema USAGE without CREATE.",
+      );
+    }
     if (
       publicSchemaGrantsResult.rows.some(
         (row) => row.privilege_type === "CREATE",
@@ -147,6 +196,7 @@ if (!shouldApply) {
     console.log(`Demo session columns verified: ${sessionColumns.join(", ")}`);
     console.log("Demo session index verified: demo_sessions_token_hash_idx");
     console.log("Least-privilege runtime role verified: scopethread_runtime");
+    console.log("Runtime role scope verified: NOLOGIN, CONNECT, and schema USAGE without CREATE.");
     console.log("Public schema CREATE privilege verified as revoked.");
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown migration error";

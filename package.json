@@ -18,6 +18,7 @@
     "db:preflight": "node --env-file=.env.local scripts/check-migration-readiness.mjs",
     "db:provision-runtime": "node --env-file=.env.local scripts/provision-runtime-user.mjs",
     "db:seed-demo": "node --env-file=.env.local scripts/seed-demo-memory.mjs",
+    "db:verify": "node --env-file=.env.local scripts/migrate-database.mjs --verify",
     "e2e:agent-memory": "node --env-file=.env.local scripts/e2e-agent-memory.mjs",
     "e2e:public-demo": "node --env-file=.env.local scripts/e2e-public-demo.mjs",
     "e2e:vector-memory": "node --env-file=.env.local scripts/e2e-vector-memory.mjs",
