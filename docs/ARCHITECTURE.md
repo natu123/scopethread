@@ -205,6 +205,7 @@ scopethread/
 - Public demo-session controls pass local API, database, SAM, and browser E2E verification. Migration `0002_demo_session_access.sql` is applied and its columns and token index are verified on the live cluster.
 - Migration `0003_runtime_role.sql` is applied on the live cluster. The `scopethread_runtime` role is verified as `NOLOGIN`, its six-table grant set matches the least-privilege design, and the built-in `public` role no longer has public-schema `CREATE`.
 - The live `scopethread_app` login inherits only `scopethread_runtime`; a real runtime connection verifies its identity, table privileges, schema boundary, and read access. Its connection string remains only in the ignored local runtime environment file until the guarded Parameter Store step is approved.
+- The `ScopeThreadBedrockDevelopment` inline policy is applied to `scopethread-dev`. The AWS copy matches the repository JSON, and IAM simulation verifies the fixed SSM parameter and selected Bedrock model allows plus denials for unrelated resources and administrative actions.
 
 Cloud mutations and paid model invocations require an explicit execution gate. The live vector-memory script also verifies its AWS caller and refuses root credentials.
 

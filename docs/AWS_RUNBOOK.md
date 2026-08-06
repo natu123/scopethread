@@ -10,6 +10,7 @@ This runbook keeps ScopeThread development off the AWS account root user and avo
 - Embedding model: `cohere.embed-multilingual-v3`.
 - Chat inference profile: `global.amazon.nova-2-lite-v1:0`.
 - Development policy: `infra/iam/scopethread-bedrock-development-policy.json`.
+- Applied inline policy: `ScopeThreadBedrockDevelopment`, structurally matched and IAM-simulated on 2026-08-06.
 
 ## One-Time Console Setup
 

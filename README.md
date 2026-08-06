@@ -22,7 +22,7 @@ npm run db:verify
 
 The guarded runtime-user provisioner has created and verified `scopethread_app` on the live cluster. Its only role membership is `scopethread_runtime`, its inherited table privileges match the least-privilege design, and it has no public-schema `CREATE`. The unprinted connection string is stored only in the ignored `.env.runtime.local` file.
 
-The guarded Parameter Store workflow transfers that runtime connection through the AWS SDK to the fixed `/scopethread/prod/database-url` Standard `SecureString` without placing it in command-line arguments or output. Live storage remains an explicit AWS gate.
+The scoped `ScopeThreadBedrockDevelopment` inline policy is applied to `scopethread-dev` and verified against the repository policy with IAM simulation. It permits access only to the selected Bedrock models and the fixed `/scopethread/prod/database-url` parameter; unrelated parameters, deletion, Marketplace subscription, IAM mutation, and other models remain denied. The guarded Parameter Store workflow is ready, while live secret storage remains an explicit AWS gate.
 
 The guarded public E2E derives its endpoints from the deployed CloudFormation stack and verifies CloudFront security headers, API health, isolated session creation, live Bedrock conflict analysis, and CockroachDB revision persistence in one reproducible scenario. Running it remains an explicit paid live gate.
 
