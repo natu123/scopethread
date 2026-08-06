@@ -1,12 +1,9 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import pg from "pg";
 
 const shouldApply = process.argv.includes("--apply");
 const connectionString = process.env.DATABASE_URL?.trim();
-const migrationUrl = new URL(
-  "../packages/database/migrations/0001_initial.sql",
-  import.meta.url,
-);
+const migrationsUrl = new URL("../packages/database/migrations/", import.meta.url);
 const expectedTables = [
   "agent_runs",
   "conversations",
@@ -23,7 +20,12 @@ if (!shouldApply) {
   console.error("DATABASE_URL is empty in .env.local.");
   process.exitCode = 1;
 } else {
-  const migrationSql = await readFile(migrationUrl, "utf8");
+  const migrationFiles = (await readdir(migrationsUrl))
+    .filter((fileName) => /^\d{4}_[a-z0-9_]+\.sql$/.test(fileName))
+    .sort();
+  if (migrationFiles.length === 0) {
+    throw new Error("No database migrations were found.");
+  }
   const pool = new pg.Pool({
     connectionString,
     max: 1,
@@ -32,7 +34,14 @@ if (!shouldApply) {
   });
 
   try {
-    await pool.query(migrationSql);
+    for (const migrationFile of migrationFiles) {
+      const migrationSql = await readFile(
+        new URL(migrationFile, migrationsUrl),
+        "utf8",
+      );
+      await pool.query(migrationSql);
+      console.log(`Migration ${migrationFile} applied successfully.`);
+    }
 
     const tablesResult = await pool.query(
       `
@@ -57,7 +66,6 @@ if (!shouldApply) {
       throw new Error("Vector index memory_items_embedding_idx was not found.");
     }
 
-    console.log("Migration 0001_initial.sql applied successfully.");
     console.log(`Tables verified: ${createdTables.join(", ")}`);
     console.log("Vector index verified: memory_items_embedding_idx");
   } catch (error) {

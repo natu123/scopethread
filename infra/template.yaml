@@ -12,6 +12,19 @@ Parameters:
   BedrockEmbeddingModelId:
     Type: String
     Default: cohere.embed-multilingual-v3
+  DemoTemplateMemoryId:
+    Type: String
+    Default: 10000000-0000-4000-8000-000000000004
+  DemoSessionTtlMinutes:
+    Type: Number
+    Default: 120
+    MinValue: 1
+    MaxValue: 1440
+  DemoSessionMaxAnalyses:
+    Type: Number
+    Default: 6
+    MinValue: 1
+    MaxValue: 50
 
 Globals:
   Function:
@@ -26,6 +39,9 @@ Globals:
         DATABASE_URL_PARAMETER_NAME: !Ref DatabaseUrlParameterName
         BEDROCK_CHAT_MODEL_ID: !Ref BedrockChatModelId
         BEDROCK_EMBEDDING_MODEL_ID: !Ref BedrockEmbeddingModelId
+        DEMO_TEMPLATE_MEMORY_ID: !Ref DemoTemplateMemoryId
+        DEMO_SESSION_TTL_MINUTES: !Ref DemoSessionTtlMinutes
+        DEMO_SESSION_MAX_ANALYSES: !Ref DemoSessionMaxAnalyses
 
 Resources:
   HttpApi:
@@ -33,6 +49,7 @@ Resources:
     Properties:
       CorsConfiguration:
         AllowHeaders:
+          - authorization
           - content-type
           - x-idempotency-key
         AllowMethods:
@@ -40,6 +57,16 @@ Resources:
           - POST
         AllowOrigins:
           - "*"
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 4
+        ThrottlingRateLimit: 2
+      RouteSettings:
+        "POST /sessions":
+          ThrottlingBurstLimit: 2
+          ThrottlingRateLimit: 0.5
+        "POST /analyze":
+          ThrottlingBurstLimit: 2
+          ThrottlingRateLimit: 1
 
   ApiFunction:
     Type: AWS::Serverless::Function
@@ -53,6 +80,12 @@ Resources:
             ApiId: !Ref HttpApi
             Method: GET
             Path: /health
+        CreateSession:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /sessions
         Analyze:
           Type: HttpApi
           Properties:

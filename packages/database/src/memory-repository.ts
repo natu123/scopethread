@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type {
   ConfirmRevisionResult,
+  DemoSessionAuthorization,
+  DemoSessionRepository,
   MemoryRepository,
   RevisionRepository,
 } from "@scopethread/core";
@@ -18,6 +20,17 @@ type RevisionLinkRow = {
   created_at: Date | string;
 };
 
+type DemoTemplateRow = {
+  project_name: string;
+  content: string;
+  rationale: string | null;
+  source_quote: string;
+};
+
+type SessionAuthorizationRow = {
+  remaining_analysis_requests: string | number;
+};
+
 function toIsoTimestamp(value: Date | string): string {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -27,9 +40,189 @@ function toIsoTimestamp(value: Date | string): string {
 }
 
 export class CockroachMemoryRepository
-  implements MemoryRepository, RevisionRepository
+  implements MemoryRepository, RevisionRepository, DemoSessionRepository
 {
   constructor(private readonly pool: Pool) {}
+
+  async createDemoSession(
+    input: Parameters<DemoSessionRepository["createDemoSession"]>[0],
+  ) {
+    const sessionId = randomUUID();
+    const projectId = randomUUID();
+    const conversationId = randomUUID();
+    const memoryId = randomUUID();
+    const client = await this.pool.connect();
+
+    try {
+      await client.query("BEGIN");
+      const templateResult = await client.query<DemoTemplateRow>(
+        `SELECT p.name AS project_name,
+                m.content,
+                m.rationale,
+                m.source_quote
+         FROM memory_items AS m
+         JOIN projects AS p ON p.id = m.project_id
+         WHERE m.id = $1
+           AND m.kind = 'decision'
+           AND m.status = 'active'
+           AND m.embedding IS NOT NULL`,
+        [input.templateMemoryId],
+      );
+      const template = templateResult.rows[0];
+      if (!template || templateResult.rows.length !== 1) {
+        throw new Error("The demo template decision is unavailable.");
+      }
+
+      await client.query(
+        `INSERT INTO demo_sessions (
+           id,
+           expires_at,
+           token_hash,
+           max_analysis_requests
+         )
+         VALUES ($1, $2, $3, $4)`,
+        [
+          sessionId,
+          input.expiresAt,
+          input.tokenHash,
+          input.maxAnalysisRequests,
+        ],
+      );
+      await client.query(
+        `INSERT INTO projects (id, demo_session_id, name)
+         VALUES ($1, $2, $3)`,
+        [projectId, sessionId, template.project_name],
+      );
+      await client.query(
+        `INSERT INTO conversations (
+           id,
+           project_id,
+           idempotency_key,
+           source_text
+         )
+         SELECT $1, $2, $3, c.source_text
+         FROM memory_items AS m
+         JOIN conversations AS c ON c.id = m.source_conversation_id
+         WHERE m.id = $4`,
+        [conversationId, projectId, `session-bootstrap:${memoryId}`, input.templateMemoryId],
+      );
+      const memoryResult = await client.query(
+        `INSERT INTO memory_items (
+           id,
+           project_id,
+           source_conversation_id,
+           kind,
+           status,
+           content,
+           rationale,
+           source_quote,
+           confidence,
+           embedding
+         )
+         SELECT $1,
+                $2,
+                $3,
+                kind,
+                status,
+                content,
+                rationale,
+                source_quote,
+                confidence,
+                embedding
+         FROM memory_items
+         WHERE id = $4
+         RETURNING id`,
+        [memoryId, projectId, conversationId, input.templateMemoryId],
+      );
+      if (memoryResult.rowCount !== 1) {
+        throw new Error("The demo template decision could not be cloned.");
+      }
+
+      await client.query("COMMIT");
+      return {
+        sessionId,
+        projectId,
+        projectName: template.project_name,
+        initialDecision: {
+          id: memoryId,
+          content: template.content,
+          rationale: template.rationale,
+          sourceQuote: template.source_quote,
+        },
+        expiresAt: toIsoTimestamp(input.expiresAt),
+        maxAnalysisRequests: input.maxAnalysisRequests,
+      };
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async authorizeDemoRequest(
+    input: Parameters<DemoSessionRepository["authorizeDemoRequest"]>[0],
+  ): Promise<DemoSessionAuthorization> {
+    if (input.consumeAnalysisRequest) {
+      const result = await this.pool.query<SessionAuthorizationRow>(
+        `UPDATE demo_sessions AS session
+         SET analysis_requests = analysis_requests + 1
+         FROM projects AS project
+         WHERE session.token_hash = $1
+           AND project.id = $2
+           AND project.demo_session_id = session.id
+           AND session.expires_at > now()
+           AND session.analysis_requests < session.max_analysis_requests
+         RETURNING
+           session.max_analysis_requests - session.analysis_requests
+             AS remaining_analysis_requests`,
+        [input.tokenHash, input.projectId],
+      );
+      const authorized = result.rows[0];
+      if (authorized) {
+        return {
+          status: "authorized",
+          remainingAnalysisRequests: Number(
+            authorized.remaining_analysis_requests,
+          ),
+        };
+      }
+    } else {
+      const result = await this.pool.query<SessionAuthorizationRow>(
+        `SELECT max_analysis_requests - analysis_requests
+                  AS remaining_analysis_requests
+         FROM demo_sessions AS session
+         JOIN projects AS project ON project.demo_session_id = session.id
+         WHERE session.token_hash = $1
+           AND project.id = $2
+           AND session.expires_at > now()`,
+        [input.tokenHash, input.projectId],
+      );
+      const authorized = result.rows[0];
+      if (authorized) {
+        return {
+          status: "authorized",
+          remainingAnalysisRequests: Math.max(
+            0,
+            Number(authorized.remaining_analysis_requests),
+          ),
+        };
+      }
+    }
+
+    const sessionResult = await this.pool.query(
+      `SELECT 1
+       FROM demo_sessions AS session
+       JOIN projects AS project ON project.demo_session_id = session.id
+       WHERE session.token_hash = $1
+         AND project.id = $2
+         AND session.expires_at > now()`,
+      [input.tokenHash, input.projectId],
+    );
+    return sessionResult.rowCount === 1
+      ? { status: "rate_limited" }
+      : { status: "unauthorized" };
+  }
 
   async startAgentRun(
     input: Parameters<MemoryRepository["startAgentRun"]>[0],

@@ -79,3 +79,17 @@ export type RevisionOutcome = {
   revisedAt: string;
   changed: boolean;
 };
+
+export type DemoSession = {
+  sessionId: string;
+  projectId: string;
+  projectName: string;
+  initialDecision: {
+    id: string;
+    content: string;
+    rationale: string | null;
+    sourceQuote: string;
+  };
+  expiresAt: string;
+  maxAnalysisRequests: number;
+};

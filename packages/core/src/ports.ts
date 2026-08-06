@@ -2,6 +2,7 @@ import type {
   AnalysisResult,
   AnalyzeConversationRequest,
   ConfirmRevisionRequest,
+  DemoSession,
   RevisionOutcome,
   StoredMemory,
 } from "./models.js";
@@ -56,4 +57,24 @@ export type ConfirmRevisionResult =
 
 export interface RevisionRepository {
   confirmRevision(input: ConfirmRevisionRequest): Promise<ConfirmRevisionResult>;
+}
+
+export type DemoSessionAuthorization =
+  | { status: "authorized"; remainingAnalysisRequests: number }
+  | { status: "unauthorized" }
+  | { status: "rate_limited" };
+
+export interface DemoSessionRepository {
+  createDemoSession(input: {
+    tokenHash: string;
+    templateMemoryId: string;
+    expiresAt: string;
+    maxAnalysisRequests: number;
+  }): Promise<DemoSession>;
+
+  authorizeDemoRequest(input: {
+    tokenHash: string;
+    projectId: string;
+    consumeAnalysisRequest: boolean;
+  }): Promise<DemoSessionAuthorization>;
 }

@@ -57,12 +57,34 @@ if (
 }
 
 const revisionEvent = apiFunction.Properties?.Events?.ConfirmRevision;
+const sessionEvent = apiFunction.Properties?.Events?.CreateSession;
+if (
+  sessionEvent?.Type !== "HttpApi" ||
+  sessionEvent.Properties?.Method !== "POST" ||
+  sessionEvent.Properties?.Path !== "/sessions"
+) {
+  throw new Error("The Lambda must expose POST /sessions through HTTP API.");
+}
 if (
   revisionEvent?.Type !== "HttpApi" ||
   revisionEvent.Properties?.Method !== "POST" ||
   revisionEvent.Properties?.Path !== "/revisions"
 ) {
   throw new Error("The Lambda must expose POST /revisions through HTTP API.");
+}
+
+const httpApi = template.Resources.HttpApi;
+if (!httpApi.Properties?.CorsConfiguration?.AllowHeaders?.includes("authorization")) {
+  throw new Error("The HTTP API CORS policy must allow the session token header.");
+}
+if (
+  !httpApi.Properties?.DefaultRouteSettings?.ThrottlingBurstLimit ||
+  !httpApi.Properties?.DefaultRouteSettings?.ThrottlingRateLimit
+) {
+  throw new Error("The public HTTP API must define default throttling.");
+}
+if (!httpApi.Properties?.RouteSettings?.["POST /sessions"]?.ThrottlingRateLimit) {
+  throw new Error("Demo session creation must have route-specific throttling.");
 }
 
 const developmentPolicy = JSON.parse(

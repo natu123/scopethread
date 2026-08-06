@@ -1,7 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const projectId = "10000000-0000-4000-8000-000000000002";
-const originalDecision = "Do not include online booking in the launch scope.";
 const defaultConversation =
   "The client would now like a booking button on every page so visitors can request an appointment.";
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
@@ -24,6 +22,7 @@ type AnalyzeResponse = {
   mode: string;
   runId: string;
   persisted: boolean;
+  remainingAnalysisRequests: number;
   result: AnalysisResult;
 };
 
@@ -41,7 +40,55 @@ type RevisionResponse = {
   changed: boolean;
 };
 
+type DemoSession = {
+  token: string;
+  sessionId: string;
+  projectId: string;
+  projectName: string;
+  initialDecision: {
+    id: string;
+    content: string;
+    rationale: string | null;
+    sourceQuote: string;
+  };
+  expiresAt: string;
+  maxAnalysisRequests: number;
+};
+
+const sessionStorageKey = "scopethread.demo-session.v1";
+
+function storedSession(): DemoSession | null {
+  try {
+    const raw = sessionStorage.getItem(sessionStorageKey);
+    if (!raw) {
+      return null;
+    }
+    const candidate = JSON.parse(raw) as Partial<DemoSession>;
+    if (
+      typeof candidate.token !== "string" ||
+      typeof candidate.projectId !== "string" ||
+      typeof candidate.projectName !== "string" ||
+      typeof candidate.expiresAt !== "string" ||
+      typeof candidate.initialDecision?.id !== "string" ||
+      typeof candidate.initialDecision.content !== "string" ||
+      new Date(candidate.expiresAt).getTime() <= Date.now()
+    ) {
+      sessionStorage.removeItem(sessionStorageKey);
+      return null;
+    }
+    return candidate as DemoSession;
+  } catch {
+    sessionStorage.removeItem(sessionStorageKey);
+    return null;
+  }
+}
+
 export function App() {
+  const [session, setSession] = useState<DemoSession | null>(null);
+  const [sessionStatus, setSessionStatus] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const [conversation, setConversation] = useState(defaultConversation);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
@@ -55,11 +102,64 @@ export function App() {
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [revisionError, setRevisionError] = useState<string | null>(null);
+  const [remainingAnalysisRequests, setRemainingAnalysisRequests] = useState<
+    number | null
+  >(null);
+
+  useEffect(() => {
+    const existing = storedSession();
+    if (existing) {
+      setSession(existing);
+      setRemainingAnalysisRequests(null);
+      setSessionStatus("ready");
+      return;
+    }
+    if (!apiBaseUrl) {
+      setSessionStatus("error");
+      setSessionError("VITE_API_BASE_URL is not configured for this build.");
+      return;
+    }
+
+    const controller = new AbortController();
+    void fetch(`${apiBaseUrl}/sessions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = (await response.json()) as DemoSession | AnalyzeErrorResponse;
+        if (!response.ok || !("token" in payload)) {
+          throw new Error(
+            "message" in payload && payload.message
+              ? payload.message
+              : "A demo session could not be created.",
+          );
+        }
+        sessionStorage.setItem(sessionStorageKey, JSON.stringify(payload));
+        setSession(payload);
+        setRemainingAnalysisRequests(payload.maxAnalysisRequests);
+        setSessionStatus("ready");
+      })
+      .catch((caught) => {
+        if (caught instanceof DOMException && caught.name === "AbortError") {
+          return;
+        }
+        setSessionStatus("error");
+        setSessionError(
+          caught instanceof Error
+            ? caught.message
+            : "A demo session could not be created.",
+        );
+      });
+
+    return () => controller.abort();
+  }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = conversation.trim();
-    if (!trimmed || status === "loading") {
+    if (!trimmed || status === "loading" || !session) {
       return;
     }
     if (!apiBaseUrl) {
@@ -84,9 +184,10 @@ export function App() {
         headers: {
           "content-type": "application/json",
           "x-idempotency-key": idempotencyKey,
+          authorization: `Bearer ${session.token}`,
         },
         body: JSON.stringify({
-          projectId,
+          projectId: session.projectId,
           conversationText: trimmed,
           idempotencyKey,
         }),
@@ -106,6 +207,7 @@ export function App() {
 
       setResult(payload.result);
       setRunId(payload.runId);
+      setRemainingAnalysisRequests(payload.remainingAnalysisRequests);
       setStatus("success");
     } catch (caught) {
       setStatus("error");
@@ -127,6 +229,7 @@ export function App() {
       !reason ||
       !conflict ||
       !runId ||
+      !session ||
       revisionStatus === "loading"
     ) {
       return;
@@ -138,9 +241,12 @@ export function App() {
     try {
       const response = await fetch(`${apiBaseUrl}/revisions`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${session.token}`,
+        },
         body: JSON.stringify({
-          projectId,
+          projectId: session.projectId,
           agentRunId: runId,
           priorMemoryId: conflict.priorMemoryId,
           reason,
@@ -171,6 +277,8 @@ export function App() {
   }
 
   const conflict = result?.conflicts[0];
+  const originalDecision =
+    session?.initialDecision.content ?? "Loading the demo decision...";
   const nextQuestion =
     conflict?.confirmationQuestion ?? result?.nextQuestions[0] ?? null;
 
@@ -182,7 +290,11 @@ export function App() {
           <span>ScopeThread</span>
         </a>
         <span className="environment-label">
-          {apiBaseUrl ? "Agentic memory" : "API setup required"}
+          {sessionStatus === "ready"
+            ? "Agentic memory"
+            : sessionStatus === "loading"
+              ? "Starting session"
+              : "Session unavailable"}
         </span>
       </header>
 
@@ -201,7 +313,9 @@ export function App() {
             <div className="panel-heading">
               <div>
                 <p className="eyebrow">Project memory</p>
-                <h2 id="memory-title">Aozora Dental Clinic</h2>
+                <h2 id="memory-title">
+                  {session?.projectName ?? "Preparing project memory"}
+                </h2>
               </div>
               <span className="status-pill">1 active decision</span>
             </div>
@@ -214,7 +328,9 @@ export function App() {
                 <span>{revision ? "Superseded" : "Active"}</span>
               </div>
               <p>{originalDecision}</p>
-              <small>Source: Initial requirements conversation</small>
+              <small>
+                Source: {session?.initialDecision.sourceQuote ?? "Loading evidence..."}
+              </small>
             </article>
 
             {revision && conflict ? (
@@ -260,15 +376,26 @@ export function App() {
                 onChange={(event) => setConversation(event.target.value)}
                 rows={8}
                 maxLength={8000}
-                disabled={status === "loading"}
+                disabled={status === "loading" || sessionStatus !== "ready"}
               />
               <div className="form-footer">
-                <small>{conversation.length.toLocaleString()} / 8,000</small>
-                <button type="submit" disabled={status === "loading"}>
+                <small>
+                  {conversation.length.toLocaleString()} / 8,000
+                  {remainingAnalysisRequests === null
+                    ? ""
+                    : ` · ${remainingAnalysisRequests} analyses left`}
+                </small>
+                <button
+                  type="submit"
+                  disabled={status === "loading" || sessionStatus !== "ready"}
+                >
                   {status === "loading" ? "Analyzing..." : "Analyze memory"}
                 </button>
               </div>
               {error ? <p className="form-error" role="alert">{error}</p> : null}
+              {sessionError ? (
+                <p className="form-error" role="alert">{sessionError}</p>
+              ) : null}
             </form>
           </section>
         </div>

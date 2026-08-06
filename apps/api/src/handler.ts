@@ -1,9 +1,11 @@
+import { createHash, randomBytes } from "node:crypto";
 import { performance } from "node:perf_hooks";
 import { BedrockRuntimeClient } from "@aws-sdk/client-bedrock-runtime";
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 import type {
   APIGatewayProxyEventV2,
   APIGatewayProxyResultV2,
+  APIGatewayProxyStructuredResultV2,
 } from "aws-lambda";
 import {
   BedrockConversationAnalyzer,
@@ -17,6 +19,7 @@ import {
   ConfirmRevision,
   ConfirmRevisionError,
   ConfirmRevisionRequestSchema,
+  type DemoSessionRepository,
 } from "@scopethread/core";
 import { CockroachMemoryRepository, getPool } from "@scopethread/database";
 
@@ -28,7 +31,10 @@ let repositoryPromise: Promise<CockroachMemoryRepository> | undefined;
 let analyzeUseCasePromise: Promise<AnalyzeConversation> | undefined;
 let revisionUseCasePromise: Promise<ConfirmRevision> | undefined;
 
-function json(statusCode: number, body: unknown): APIGatewayProxyResultV2 {
+function json(
+  statusCode: number,
+  body: unknown,
+): APIGatewayProxyStructuredResultV2 {
   return {
     statusCode,
     headers: {
@@ -128,15 +134,94 @@ function isRequestError(error: unknown): boolean {
   );
 }
 
+function positiveIntegerEnvironment(
+  name: string,
+  defaultValue: number,
+  maximum: number,
+): number {
+  const raw = process.env[name]?.trim();
+  const value = raw ? Number(raw) : defaultValue;
+  if (!Number.isInteger(value) || value < 1 || value > maximum) {
+    throw new ConfigurationError(
+      `${name} must be an integer between 1 and ${maximum}.`,
+    );
+  }
+  return value;
+}
+
+function tokenHash(token: string): string {
+  return createHash("sha256").update(token, "utf8").digest("hex");
+}
+
+function bearerToken(event: APIGatewayProxyEventV2): string | null {
+  const authorization = Object.entries(event.headers ?? {}).find(
+    ([name]) => name.toLowerCase() === "authorization",
+  )?.[1];
+  const match = authorization?.match(/^Bearer ([A-Za-z0-9_-]{43})$/);
+  return match?.[1] ?? null;
+}
+
 export type HandlerDependencies = {
   getAnalyzeUseCase: () => Promise<Pick<AnalyzeConversation, "execute">>;
   getRevisionUseCase: () => Promise<Pick<ConfirmRevision, "execute">>;
+  getSessionRepository: () => Promise<DemoSessionRepository>;
 };
 
 const defaultDependencies: HandlerDependencies = {
   getAnalyzeUseCase,
   getRevisionUseCase,
+  getSessionRepository: getRepository,
 };
+
+async function authorizeDemoRequest(
+  event: APIGatewayProxyEventV2,
+  projectId: string,
+  consumeAnalysisRequest: boolean,
+  dependencies: HandlerDependencies,
+): Promise<
+  | { authorized: true; remainingAnalysisRequests: number }
+  | { authorized: false; response: APIGatewayProxyStructuredResultV2 }
+> {
+  const token = bearerToken(event);
+  if (!token) {
+    return {
+      authorized: false,
+      response: json(401, {
+        error: "DEMO_SESSION_REQUIRED",
+        message: "A valid demo session is required.",
+      }),
+    };
+  }
+  const authorization = await (
+    await dependencies.getSessionRepository()
+  ).authorizeDemoRequest({
+    tokenHash: tokenHash(token),
+    projectId,
+    consumeAnalysisRequest,
+  });
+  if (authorization.status === "unauthorized") {
+    return {
+      authorized: false,
+      response: json(401, {
+        error: "DEMO_SESSION_INVALID",
+        message: "The demo session is invalid or expired.",
+      }),
+    };
+  }
+  if (authorization.status === "rate_limited") {
+    return {
+      authorized: false,
+      response: json(429, {
+        error: "DEMO_ANALYSIS_LIMIT_REACHED",
+        message: "This demo session has used its analysis allowance.",
+      }),
+    };
+  }
+  return {
+    authorized: true,
+    remainingAnalysisRequests: authorization.remainingAnalysisRequests,
+  };
+}
 
 async function handleRequest(
   event: APIGatewayProxyEventV2,
@@ -166,6 +251,66 @@ async function handleRequest(
     });
   }
 
+  if (method === "POST" && path === "/sessions") {
+    const requestId = event.requestContext.requestId;
+    try {
+      const templateMemoryId = process.env.DEMO_TEMPLATE_MEMORY_ID?.trim();
+      if (!templateMemoryId) {
+        throw new ConfigurationError(
+          "DEMO_TEMPLATE_MEMORY_ID is not configured.",
+        );
+      }
+      const ttlMinutes = positiveIntegerEnvironment(
+        "DEMO_SESSION_TTL_MINUTES",
+        120,
+        1440,
+      );
+      const maxAnalysisRequests = positiveIntegerEnvironment(
+        "DEMO_SESSION_MAX_ANALYSES",
+        6,
+        50,
+      );
+      const token = randomBytes(32).toString("base64url");
+      const session = await (
+        await dependencies.getSessionRepository()
+      ).createDemoSession({
+        tokenHash: tokenHash(token),
+        templateMemoryId,
+        expiresAt: new Date(Date.now() + ttlMinutes * 60_000).toISOString(),
+        maxAnalysisRequests,
+      });
+      console.info(
+        JSON.stringify({
+          event: "demo_session_created",
+          requestId,
+          sessionId: session.sessionId,
+          projectId: session.projectId,
+          expiresAt: session.expiresAt,
+          maxAnalysisRequests,
+        }),
+      );
+      return json(201, { ...session, token });
+    } catch (error) {
+      if (error instanceof ConfigurationError) {
+        return json(503, {
+          error: "SERVICE_NOT_CONFIGURED",
+          message: error.message,
+        });
+      }
+      console.error(
+        JSON.stringify({
+          event: "demo_session_failed",
+          requestId,
+          category: error instanceof Error ? error.name : "UnknownError",
+        }),
+      );
+      return json(502, {
+        error: "DEMO_SESSION_FAILED",
+        message: "A demo session could not be created.",
+      });
+    }
+  }
+
   if (method === "POST" && path === "/analyze") {
     const startedAt = performance.now();
     const requestId = event.requestContext.requestId;
@@ -174,6 +319,15 @@ async function handleRequest(
       const request = AnalyzeConversationRequestSchema.parse(
         JSON.parse(event.body ?? "{}"),
       );
+      const authorization = await authorizeDemoRequest(
+        event,
+        request.projectId,
+        true,
+        dependencies,
+      );
+      if (!authorization.authorized) {
+        return authorization.response;
+      }
       const outcome = await (await dependencies.getAnalyzeUseCase()).execute(
         request,
       );
@@ -196,6 +350,8 @@ async function handleRequest(
         mode: "agentic-memory",
         runId: outcome.runId,
         persisted: outcome.persisted,
+        remainingAnalysisRequests:
+          authorization.remainingAnalysisRequests,
         result: outcome.result,
       });
     } catch (error) {
@@ -251,6 +407,15 @@ async function handleRequest(
       const request = ConfirmRevisionRequestSchema.parse(
         JSON.parse(event.body ?? "{}"),
       );
+      const authorization = await authorizeDemoRequest(
+        event,
+        request.projectId,
+        false,
+        dependencies,
+      );
+      if (!authorization.authorized) {
+        return authorization.response;
+      }
       const outcome = await (
         await dependencies.getRevisionUseCase()
       ).execute(request);

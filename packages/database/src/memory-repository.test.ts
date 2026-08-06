@@ -379,3 +379,114 @@ describe("CockroachMemoryRepository revisions", () => {
     expect(release).toHaveBeenCalledOnce();
   });
 });
+
+describe("CockroachMemoryRepository demo sessions", () => {
+  it("creates an isolated project by cloning one active template decision", async () => {
+    const query = vi.fn(async (text: string) => {
+      const sql = statement(text);
+      if (sql.startsWith("SELECT p.name AS project_name")) {
+        return {
+          rowCount: 1,
+          rows: [
+            {
+              project_name: "Aozora Dental Clinic Website",
+              content: "Do not include online booking in the launch scope.",
+              rationale: "The launch should remain small.",
+              source_quote: "We do not need online booking for launch.",
+            },
+          ],
+        };
+      }
+      if (sql.startsWith("INSERT INTO memory_items")) {
+        return { rowCount: 1, rows: [{ id: "generated" }] };
+      }
+      return { rowCount: 1, rows: [] };
+    });
+    const { repository, release } = repositoryWithClient(query);
+
+    const session = await repository.createDemoSession({
+      tokenHash: "a".repeat(64),
+      templateMemoryId: priorMemoryId,
+      expiresAt: "2026-08-06T08:00:00.000Z",
+      maxAnalysisRequests: 6,
+    });
+
+    expect(session).toMatchObject({
+      projectName: "Aozora Dental Clinic Website",
+      expiresAt: "2026-08-06T08:00:00.000Z",
+      maxAnalysisRequests: 6,
+      initialDecision: {
+        content: "Do not include online booking in the launch scope.",
+      },
+    });
+    expect(session.sessionId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(session.projectId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(session.initialDecision.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(query.mock.calls.map(([text]) => statement(text))).toEqual([
+      "BEGIN",
+      expect.stringMatching(/^SELECT p.name AS project_name/),
+      expect.stringMatching(/^INSERT INTO demo_sessions/),
+      expect.stringMatching(/^INSERT INTO projects/),
+      expect.stringMatching(/^INSERT INTO conversations/),
+      expect.stringMatching(/^INSERT INTO memory_items/),
+      "COMMIT",
+    ]);
+    expect(release).toHaveBeenCalledOnce();
+  });
+
+  it("atomically consumes one analysis allowance", async () => {
+    const query = vi.fn().mockResolvedValue({
+      rowCount: 1,
+      rows: [{ remaining_analysis_requests: "5" }],
+    });
+    const pool = { query } as unknown as Pool;
+    const repository = new CockroachMemoryRepository(pool);
+
+    await expect(
+      repository.authorizeDemoRequest({
+        tokenHash: "b".repeat(64),
+        projectId,
+        consumeAnalysisRequest: true,
+      }),
+    ).resolves.toEqual({
+      status: "authorized",
+      remainingAnalysisRequests: 5,
+    });
+    expect(statement(query.mock.calls[0]?.[0])).toContain(
+      "SET analysis_requests = analysis_requests + 1",
+    );
+    expect(query).toHaveBeenCalledOnce();
+  });
+
+  it("distinguishes an exhausted allowance from an invalid session", async () => {
+    const limitedQuery = vi
+      .fn()
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ "?column?": 1 }] });
+    const limitedRepository = new CockroachMemoryRepository({
+      query: limitedQuery,
+    } as unknown as Pool);
+
+    await expect(
+      limitedRepository.authorizeDemoRequest({
+        tokenHash: "c".repeat(64),
+        projectId,
+        consumeAnalysisRequest: true,
+      }),
+    ).resolves.toEqual({ status: "rate_limited" });
+
+    const unauthorizedQuery = vi
+      .fn()
+      .mockResolvedValue({ rowCount: 0, rows: [] });
+    const unauthorizedRepository = new CockroachMemoryRepository({
+      query: unauthorizedQuery,
+    } as unknown as Pool);
+    await expect(
+      unauthorizedRepository.authorizeDemoRequest({
+        tokenHash: "d".repeat(64),
+        projectId,
+        consumeAnalysisRequest: true,
+      }),
+    ).resolves.toEqual({ status: "unauthorized" });
+  });
+});
