@@ -188,11 +188,12 @@ Resources:
                 Resource: "*"
 
   DevelopmentDeploymentPolicy:
-    Type: AWS::IAM::Policy
+    Type: AWS::IAM::ManagedPolicy
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      PolicyName: ScopeThreadDeployment
+      ManagedPolicyName: ScopeThreadDeployment
+      Description: Scoped deployment access for the ScopeThread hackathon stack.
       Users:
         - !Ref DevelopmentUserName
       PolicyDocument:

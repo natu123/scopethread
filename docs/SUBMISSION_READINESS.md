@@ -8,7 +8,7 @@ This document maps every MVP completion requirement to current evidence. `Prepar
 
 | Requirement | Required evidence | Current evidence | Status | Remaining gate |
 | --- | --- | --- | --- | --- |
-| Full demo runs from a public AWS URL | Successful `npm run e2e:public-demo -- --stack-name scopethread --apply` against deployed CloudFront and API endpoints | Guarded deployment bootstrap, dedicated roles, application deployer, public E2E, and SAM stack are locally verified; no stack is deployed | Prepared | Bootstrap roles, deploy, publish, and run the paid public E2E |
+| Full demo runs from a public AWS URL | Successful `npm run e2e:public-demo -- --stack-name scopethread --apply` against deployed CloudFront and API endpoints | The deployment bootstrap and dedicated roles are verified live; the guarded application deployer, public E2E, and SAM stack are locally verified | Partially verified | Deploy, publish, and run the paid public E2E |
 | CockroachDB persists structured state, evidence, embeddings, and revisions | Live records for conversations, memories, vectors, links, and agent runs; revision remains after reload | Migrations `0001` through `0003`, the least-privilege runtime role, the live `scopethread_app` login, fictional seed memory, vector index, and live embedding retrieval were verified; local persisted-memory and revision tests pass | Partially verified | Verify the complete workflow through the public E2E |
 | Distributed Vector Indexing is exercised and visible | Live vector retrieval and `SHOW INDEXES` evidence for `memory_items_embedding_idx` | Live Cohere embedding retrieval and the project-prefixed vector index were verified before this review | Verified live | Capture non-secret evidence in the final video |
 | Managed MCP inspects the same memory read-only | OAuth connection scoped to one cluster, read permission only, allowlisted audit query returns the public agent run and decision chain | Read-only audit runbook and queries are prepared | Prepared | Authenticate and run the live MCP audit |
@@ -30,15 +30,14 @@ This document maps every MVP completion requirement to current evidence. `Prepar
 
 ## Live execution order
 
-Migration `0003_runtime_role.sql`, the `scopethread_app` runtime identity, the scoped `ScopeThreadBedrockDevelopment` IAM policy, and the version-one runtime `SecureString` were applied and verified on 2026-08-06. Run the remaining steps only after the corresponding explicit approval:
+Migration `0003_runtime_role.sql`, the `scopethread_app` runtime identity, the scoped development policies, the version-one runtime `SecureString`, and the `scopethread-bootstrap` stack were applied and verified on 2026-08-06. Run the remaining steps only after the corresponding explicit approval:
 
 1. Re-run `npm run e2e:agent-memory -- --apply` after AWS confirms Nova quota.
-2. Run `npm run aws:bootstrap-deployment -- --apply` once with the root profile; the script logs it out.
-3. Run `npm run aws:deploy -- --apply` as `scopethread-dev`, then publish the static web build.
-4. Run `npm run e2e:public-demo -- --stack-name scopethread --apply`.
-5. Connect CockroachDB Cloud Managed MCP with single-cluster OAuth and read-only authorization, then execute the audit runbook.
-6. Record and review the video.
-7. Replace the Devpost placeholders and perform the final audit.
+2. Run `npm run aws:deploy -- --apply` as `scopethread-dev`, then publish the static web build.
+3. Run `npm run e2e:public-demo -- --stack-name scopethread --apply`.
+4. Connect CockroachDB Cloud Managed MCP with single-cluster OAuth and read-only authorization, then execute the audit runbook.
+5. Record and review the video.
+6. Replace the Devpost placeholders and perform the final audit.
 
 ## Current external blocker
 

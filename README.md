@@ -6,7 +6,7 @@ ScopeThread is a persistent-memory agent for web production requirements. It tur
 
 ## Status
 
-ScopeThread has a verified application scaffold for the web interface, Lambda API, core domain workflow, Bedrock adapters, CockroachDB vector queries, database migration, and AWS SAM infrastructure. The CockroachDB Cloud connection, migration, vector index, fictional demo memory, and live Cohere embedding retrieval have been verified against the Singapore cluster. Nova 2 Lite live inference is waiting for AWS to activate the new account's non-zero daily token quota. AWS deployment remains a later explicit gate.
+ScopeThread has a verified application scaffold for the web interface, Lambda API, core domain workflow, Bedrock adapters, CockroachDB vector queries, database migration, and AWS SAM infrastructure. The CockroachDB Cloud connection, migration, vector index, fictional demo memory, live Cohere embedding retrieval, and one-time AWS deployment bootstrap have been verified in Singapore. Nova 2 Lite live inference is waiting for AWS to activate the new account's non-zero daily token quota. Application-stack deployment remains a later explicit gate.
 
 Agent-run observability is implemented locally. Every valid analysis receives a durable run ID, model identifiers, status, duration, and a safe error category. Successful memory writes and the run's `succeeded` transition share one CockroachDB transaction; failed model calls do not create partial memory.
 
@@ -86,6 +86,10 @@ npm run aws:deploy
 Both commands are local dry gates unless `--apply` is supplied after explicit
 approval. The bootstrap is the only stage that requires the root profile and
 logs it out after the operation; application deployment refuses root.
+
+The live `scopethread-bootstrap` stack is verified as `CREATE_COMPLETE` with
+its artifact bucket, customer-managed deployment policy, CloudFormation role,
+and Lambda role all created successfully.
 
 The browser requires a configured `VITE_API_BASE_URL` before it submits an analysis request. It does not simulate a successful agent response when the API is unavailable.
 

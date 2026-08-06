@@ -76,6 +76,10 @@ Vector similarity is useful only after the project boundary is enforced. The Coc
 
 Anonymous model access needed multiple layers of control. ScopeThread combines short-lived sessions, hashed tokens, per-session analysis limits, API Gateway throttling, request-size limits, scoped IAM permissions, and guarded deployment scripts.
 
+#### Keeping deployment access narrow
+
+The first deployment bootstrap reached the IAM user's aggregate inline-policy size limit. Instead of broadening the user or switching to administrator access, we moved only the deployment permissions into a customer-managed policy. The final bootstrap separates the development user, CloudFormation service role, Lambda execution role, and artifact bucket, and the application deployer can pass only the fixed CloudFormation role for the fixed stack.
+
 #### External model activation
 
 The Cohere embedding path required accepting the third-party model agreement before live inference. Amazon Nova live verification also depends on the AWS account's available model quota. The repository keeps this external account state separate from code-level completion and does not claim live verification before it succeeds.

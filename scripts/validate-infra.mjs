@@ -285,6 +285,14 @@ const cloudFormationExecutionRole =
   deploymentBootstrap.Resources.CloudFormationExecutionRole;
 const deploymentPolicy =
   deploymentBootstrap.Resources.DevelopmentDeploymentPolicy;
+if (
+  deploymentPolicy.Type !== "AWS::IAM::ManagedPolicy" ||
+  deploymentPolicy.Properties?.ManagedPolicyName !== "ScopeThreadDeployment"
+) {
+  throw new Error(
+    "Deployment access must use the fixed customer-managed policy to avoid IAM user inline-policy limits.",
+  );
+}
 const lambdaTrust =
   lambdaExecutionRole.Properties?.AssumeRolePolicyDocument?.Statement ?? [];
 const cloudFormationTrust =

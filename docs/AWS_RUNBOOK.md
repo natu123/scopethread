@@ -11,6 +11,7 @@ This runbook keeps ScopeThread development off the AWS account root user and avo
 - Chat inference profile: `global.amazon.nova-2-lite-v1:0`.
 - Development policy: `infra/iam/scopethread-bedrock-development-policy.json`.
 - Applied inline policy: `ScopeThreadBedrockDevelopment`, structurally matched and IAM-simulated on 2026-08-06.
+- Deployment bootstrap: `scopethread-bootstrap` reached `CREATE_COMPLETE` on 2026-08-06.
 
 ## One-Time Console Setup
 
@@ -82,6 +83,8 @@ aws logout --profile scopethread
 
 ## Bootstrap the Deployment Roles
 
+Live status: the fixed bootstrap stack and all four resources are `CREATE_COMPLETE`. Re-running the apply command is still an explicit mutation gate and should be used only for reviewed template updates.
+
 Run this one-time local gate before the first AWS deployment:
 
 ```powershell
@@ -94,7 +97,7 @@ It makes no AWS call. After explicit approval, authenticate the `scopethread` ro
 npm run aws:bootstrap-deployment -- --apply
 ```
 
-The fixed `scopethread-bootstrap` stack creates a retained private and versioned artifact bucket, a CloudFormation-only service role, a Lambda-only execution role, and the `ScopeThreadDeployment` inline policy for `scopethread-dev`. The script verifies the fixed outputs and logs out the root profile. Do not use root for the application deployment.
+The fixed `scopethread-bootstrap` stack creates a retained private and versioned artifact bucket, a CloudFormation-only service role, a Lambda-only execution role, and the customer-managed `ScopeThreadDeployment` policy for `scopethread-dev`. The script verifies the fixed outputs and logs out the root profile. Do not use root for the application deployment.
 
 ## Deploy the SAM Application
 
