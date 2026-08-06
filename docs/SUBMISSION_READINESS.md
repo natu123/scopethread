@@ -30,15 +30,14 @@ This document maps every MVP completion requirement to current evidence. `Prepar
 
 ## Live execution order
 
-Migration `0003_runtime_role.sql`, the `scopethread_app` runtime identity, and the scoped `ScopeThreadBedrockDevelopment` IAM policy were applied and verified on 2026-08-06. Run the remaining steps only after the corresponding explicit approval:
+Migration `0003_runtime_role.sql`, the `scopethread_app` runtime identity, the scoped `ScopeThreadBedrockDevelopment` IAM policy, and the version-one runtime `SecureString` were applied and verified on 2026-08-06. Run the remaining steps only after the corresponding explicit approval:
 
-1. Run `npm run aws:store-runtime-secret -- --apply`.
-2. Re-run `npm run e2e:agent-memory -- --apply` after AWS confirms Nova quota.
-3. Deploy the SAM stack and publish the static web build.
-4. Run `npm run e2e:public-demo -- --stack-name scopethread --apply`.
-5. Connect CockroachDB Cloud Managed MCP with single-cluster OAuth and read-only authorization, then execute the audit runbook.
-6. Record and review the video.
-7. Replace the Devpost placeholders and perform the final audit.
+1. Re-run `npm run e2e:agent-memory -- --apply` after AWS confirms Nova quota.
+2. Deploy the SAM stack and publish the static web build.
+3. Run `npm run e2e:public-demo -- --stack-name scopethread --apply`.
+4. Connect CockroachDB Cloud Managed MCP with single-cluster OAuth and read-only authorization, then execute the audit runbook.
+5. Record and review the video.
+6. Replace the Devpost placeholders and perform the final audit.
 
 ## Current external blocker
 

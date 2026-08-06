@@ -135,6 +135,8 @@ Do not copy that value into a command, commit, issue, screenshot, or chat. A lat
 
 ## Store the Runtime Connection in Parameter Store
 
+Live status: `/scopethread/prod/database-url` was stored as a Standard `SecureString` at version 1 and verified without decryption on 2026-08-06. Re-running the apply command creates a new parameter version, so treat every later run as a separate explicit gate.
+
 After `.env.runtime.local` has been generated, verify the local gate:
 
 ```powershell
