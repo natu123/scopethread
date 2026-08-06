@@ -2,7 +2,8 @@ import { spawnSync } from "node:child_process";
 
 const expectedProfile = "scopethread-dev";
 const stackNamePattern = /^[A-Za-z][A-Za-z0-9-]{0,127}$/;
-const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+const nodeCommand = process.execPath;
+const npmCli = process.env.npm_execpath;
 
 function fail(message) {
   console.error(message);
@@ -115,7 +116,10 @@ if (
 }
 
 console.log(`Publishing ScopeThread web assets to s3://${bucketName}.`);
-run(npmCommand, ["run", "build", "--workspace", "@scopethread/web"], {
+if (!npmCli) {
+  fail("The npm CLI path is unavailable. Run this publisher through npm run web:publish.");
+}
+run(nodeCommand, [npmCli, "run", "build", "--workspace", "@scopethread/web"], {
   env: { ...process.env, VITE_API_BASE_URL: apiUrl },
 });
 run("aws", [
