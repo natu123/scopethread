@@ -33,6 +33,7 @@ The CockroachDB Cloud Managed MCP audit is prepared as a single-cluster, OAuth, 
 - [AWS development runbook](docs/AWS_RUNBOOK.md)
 - [CockroachDB Cloud MCP audit runbook](docs/MCP_AUDIT_RUNBOOK.md)
 - [Devpost project story draft](docs/DEVPOST_DRAFT.md)
+- [Submission readiness audit](docs/SUBMISSION_READINESS.md)
 
 ## Local Development
 
