@@ -150,6 +150,34 @@ describe("API handler", () => {
     expect(JSON.parse(response.body ?? "{}").error).toBe("INVALID_REQUEST");
   });
 
+  it("rejects an oversized request before authorization or model access", async () => {
+    const execute = vi.fn();
+    const authorizeDemoRequest = vi.fn();
+    const dependencies: HandlerDependencies = {
+      getAnalyzeUseCase: async () => ({ execute }),
+      getRevisionUseCase: async () => ({ execute: vi.fn() }),
+      getDismissalUseCase: getUnexpectedDismissalUseCase,
+      getSessionRepository: async () => ({
+        createDemoSession: vi.fn(),
+        authorizeDemoRequest,
+      }),
+      getMemoryInspectionRepository: getEmptyMemoryInspectionRepository,
+    };
+    const oversizedBody = JSON.stringify({ content: "あ".repeat(6_000) });
+
+    const response = (await createHandler(dependencies)(
+      event("POST", "/analyze", oversizedBody),
+    )) as APIGatewayProxyStructuredResultV2;
+
+    expect(response.statusCode).toBe(413);
+    expect(JSON.parse(response.body ?? "{}")).toEqual({
+      error: "REQUEST_TOO_LARGE",
+      message: "The request body exceeds the 16 KiB limit.",
+    });
+    expect(authorizeDemoRequest).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
+  });
+
   it("requires a demo session before analysis", async () => {
     const input = event(
       "POST",

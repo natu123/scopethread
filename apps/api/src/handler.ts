@@ -32,6 +32,8 @@ class ConfigurationError extends Error {
   override readonly name = "ConfigurationError";
 }
 
+const MAX_REQUEST_BODY_BYTES = 16 * 1024;
+
 let repositoryPromise: Promise<CockroachMemoryRepository> | undefined;
 let analyzeUseCasePromise: Promise<AnalyzeConversation> | undefined;
 let revisionUseCasePromise: Promise<ConfirmRevision> | undefined;
@@ -177,6 +179,15 @@ function bearerToken(event: APIGatewayProxyEventV2): string | null {
   return match?.[1] ?? null;
 }
 
+function requestBodySize(event: APIGatewayProxyEventV2): number {
+  if (!event.body) {
+    return 0;
+  }
+  return event.isBase64Encoded
+    ? Buffer.from(event.body, "base64").byteLength
+    : Buffer.byteLength(event.body, "utf8");
+}
+
 export type HandlerDependencies = {
   getAnalyzeUseCase: () => Promise<Pick<AnalyzeConversation, "execute">>;
   getRevisionUseCase: () => Promise<Pick<ConfirmRevision, "execute">>;
@@ -249,6 +260,13 @@ async function handleRequest(
 ): Promise<APIGatewayProxyResultV2> {
   const method = event.requestContext.http.method;
   const path = event.rawPath;
+
+  if (method === "POST" && requestBodySize(event) > MAX_REQUEST_BODY_BYTES) {
+    return json(413, {
+      error: "REQUEST_TOO_LARGE",
+      message: "The request body exceeds the 16 KiB limit.",
+    });
+  }
 
   if (method === "GET" && path === "/health") {
     const databaseConfigured = Boolean(

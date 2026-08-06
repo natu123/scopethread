@@ -148,6 +148,7 @@ The exact DDL remains subject to verification against the selected CockroachDB C
 - Store the CockroachDB connection string as a standard Parameter Store `SecureString`; Lambda retrieves it once per cold start and never logs it.
 - Restrict Lambda IAM permissions to the selected Bedrock models and required AWS resources.
 - Apply API request-size limits, throttling, and basic abuse controls before making the demo public.
+- Reject POST bodies larger than 16 KiB before session authorization, database access, or Bedrock invocation.
 
 ## Observability
 
