@@ -55,6 +55,8 @@ Run the complete local verification suite:
 npm run check
 ```
 
+The suite also scans every Git-tracked text file for common AWS keys, private keys, credential-bearing PostgreSQL URLs, account IDs, and accidentally tracked local environment files. `.env.local` and `.env.runtime.local` must remain ignored.
+
 Validate the SAM template, build the Lambda bundle, and run a health check
 against the built artifact:
 

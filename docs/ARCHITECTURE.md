@@ -138,6 +138,7 @@ The exact DDL remains subject to verification against the selected CockroachDB C
 
 - Use fictional data only in the public demo.
 - Never expose database, AWS, or MCP credentials to the browser.
+- Fail the repository verification if tracked files contain common AWS keys, private keys, credential-bearing database URLs, account IDs, or local secret environment files.
 - Use parameterized SQL and allowlisted operations rather than model-generated SQL.
 - Use separate database identities for schema migration and application runtime; keep Managed MCP access in its separate Cloud OAuth path.
 - Grant the runtime database identity only the table-level `SELECT`, `INSERT`, and `UPDATE` operations used by the Lambda workflow; do not grant deletion, DDL, or privilege delegation.
