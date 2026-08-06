@@ -89,6 +89,9 @@ if (!shouldApply) {
          AND grantee = 'scopethread_runtime'
        ORDER BY table_name, privilege_type`,
     );
+    const publicSchemaGrantsResult = await pool.query(
+      "SHOW GRANTS ON SCHEMA public FOR public",
+    );
     const createdTables = tablesResult.rows.map((row) => row.table_name);
     const indexNames = indexesResult.rows.map((row) => row.index_name);
     const sessionColumns = sessionColumnsResult.rows.map(
@@ -123,6 +126,13 @@ if (!shouldApply) {
     if (runtimeRoleResult.rowCount !== 1) {
       throw new Error("Runtime role scopethread_runtime was not found.");
     }
+    if (
+      publicSchemaGrantsResult.rows.some(
+        (row) => row.privilege_type === "CREATE",
+      )
+    ) {
+      throw new Error("The public role must not create objects in public schema.");
+    }
     for (const [tableName, expectedPrivileges] of expectedRuntimeTablePrivileges) {
       const actualPrivileges = runtimePrivileges.get(tableName) ?? [];
       if (actualPrivileges.join(",") !== expectedPrivileges.join(",")) {
@@ -137,6 +147,7 @@ if (!shouldApply) {
     console.log(`Demo session columns verified: ${sessionColumns.join(", ")}`);
     console.log("Demo session index verified: demo_sessions_token_hash_idx");
     console.log("Least-privilege runtime role verified: scopethread_runtime");
+    console.log("Public schema CREATE privilege verified as revoked.");
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown migration error";
     console.error(`Migration failed: ${message}`);
