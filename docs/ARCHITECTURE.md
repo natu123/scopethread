@@ -149,6 +149,7 @@ The exact DDL remains subject to verification against the selected CockroachDB C
 - Restrict Lambda IAM permissions to the selected Bedrock models and required AWS resources.
 - Apply API request-size limits, throttling, and basic abuse controls before making the demo public.
 - Reject POST bodies larger than 16 KiB before session authorization, database access, or Bedrock invocation.
+- Attach CloudFront response headers for CSP, HSTS, clickjacking prevention, MIME sniffing prevention, and referrer control.
 
 ## Observability
 

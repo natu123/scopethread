@@ -21,6 +21,7 @@ const requiredResources = [
   "ApiFunction",
   "ApiFunctionLogGroup",
   "WebBucket",
+  "WebSecurityHeadersPolicy",
   "WebDistribution",
 ];
 
@@ -69,6 +70,33 @@ if (
   apiFunctionLogGroup.UpdateReplacePolicy !== "Delete"
 ) {
   throw new Error("The Lambda log group must be removed with the demo stack.");
+}
+
+const webSecurityHeadersPolicy = template.Resources.WebSecurityHeadersPolicy;
+const securityHeaders =
+  webSecurityHeadersPolicy.Properties?.ResponseHeadersPolicyConfig
+    ?.SecurityHeadersConfig;
+const contentSecurityPolicy =
+  securityHeaders?.ContentSecurityPolicy?.ContentSecurityPolicy;
+if (
+  webSecurityHeadersPolicy.Type !==
+    "AWS::CloudFront::ResponseHeadersPolicy" ||
+  !contentSecurityPolicy?.includes("default-src 'self'") ||
+  !contentSecurityPolicy.includes("frame-ancestors 'none'") ||
+  securityHeaders?.FrameOptions?.FrameOption !== "DENY" ||
+  securityHeaders?.ContentTypeOptions?.Override !== true ||
+  securityHeaders?.StrictTransportSecurity?.AccessControlMaxAgeSec !== 31536000
+) {
+  throw new Error("The CloudFront web security headers are incomplete.");
+}
+
+const defaultCacheBehavior =
+  template.Resources.WebDistribution.Properties?.DistributionConfig
+    ?.DefaultCacheBehavior;
+if (!defaultCacheBehavior?.ResponseHeadersPolicyId) {
+  throw new Error(
+    "The CloudFront default behavior must attach the web security headers policy.",
+  );
 }
 
 const revisionEvent = apiFunction.Properties?.Events?.ConfirmRevision;
@@ -172,5 +200,5 @@ for (const action of forbiddenDevelopmentActions) {
 }
 
 console.log(
-  "Infrastructure template, log retention, and scoped Bedrock development policy are valid.",
+  "Infrastructure template, log retention, web security headers, and scoped Bedrock development policy are valid.",
 );
