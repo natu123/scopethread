@@ -36,3 +36,4 @@ Thumbs.db
 .wrangler/
 .serverless/
 cdk.out/
+.aws-sam/

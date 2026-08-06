@@ -1,0 +1,37 @@
+{
+  "name": "scopethread",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Persistent memory for web production requirements and client decisions.",
+  "license": "MIT",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "check": "npm run typecheck && npm run test && npm run validate:infra && npm run build",
+    "db:check": "node --env-file=.env.local scripts/check-database.mjs",
+    "db:migrate": "node --env-file=.env.local scripts/migrate-database.mjs",
+    "db:preflight": "node --env-file=.env.local scripts/check-migration-readiness.mjs",
+    "db:seed-demo": "node --env-file=.env.local scripts/seed-demo-memory.mjs",
+    "e2e:agent-memory": "node --env-file=.env.local scripts/e2e-agent-memory.mjs",
+    "e2e:vector-memory": "node --env-file=.env.local scripts/e2e-vector-memory.mjs",
+    "dev": "npm run dev --workspace @scopethread/web",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "validate:infra": "node scripts/validate-infra.mjs"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-sts": "^3.1102.0",
+    "@types/node": "26.1.2",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10",
+    "yaml": "2.9.0"
+  }
+}

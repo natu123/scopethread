@@ -6,7 +6,56 @@ ScopeThread is a persistent-memory agent for web production requirements. It tur
 
 ## Status
 
-ScopeThread is in the planning and early development stage. The architecture and technology choices below are provisional until the first end-to-end demo is verified.
+ScopeThread has a verified application scaffold for the web interface, Lambda API, core domain workflow, Bedrock adapters, CockroachDB vector queries, database migration, and AWS SAM infrastructure. The CockroachDB Cloud connection, migration, vector index, fictional demo memory, and live Cohere embedding retrieval have been verified against the Singapore cluster. Nova 2 Lite live inference is waiting for AWS to activate the new account's non-zero daily token quota. AWS deployment remains a later explicit gate.
+
+Agent-run observability is implemented locally. Every valid analysis receives a durable run ID, model identifiers, status, duration, and a safe error category. Successful memory writes and the run's `succeeded` transition share one CockroachDB transaction; failed model calls do not create partial memory.
+
+## Design Documents
+
+- [MVP requirements](docs/REQUIREMENTS.md)
+- [Proposed architecture](docs/ARCHITECTURE.md)
+- [AWS development runbook](docs/AWS_RUNBOOK.md)
+
+## Local Development
+
+Requirements:
+
+- Node.js 24 or later.
+- npm 11 or later.
+
+Install dependencies and start the web scaffold:
+
+```bash
+npm install
+npm run dev
+```
+
+Run the complete local verification suite:
+
+```bash
+npm run check
+```
+
+The browser requires a configured `VITE_API_BASE_URL` before it submits an analysis request. It does not simulate a successful agent response when the API is unavailable.
+
+## Repository Structure
+
+```text
+apps/
+  api/                 Lambda HTTP handler scaffold
+  web/                 React and Vite browser application
+packages/
+  bedrock/             Bedrock chat and multilingual embedding adapters
+  core/                Domain schemas, ports, and analysis use case
+  database/            CockroachDB pool, vector retrieval, and migration
+infra/
+  template.yaml        AWS SAM infrastructure
+  iam/                 Scoped development IAM policy
+docs/
+  REQUIREMENTS.md      MVP requirements and acceptance criteria
+  ARCHITECTURE.md      Architecture and security decisions
+  AWS_RUNBOOK.md       Short-lived AWS login and live-test procedure
+```
 
 ## The Problem
 
@@ -60,10 +109,10 @@ The planned hackathon integrations are:
 
 | Technology | Planned role | Status |
 | --- | --- | --- |
-| CockroachDB Distributed Vector Indexing | Retrieve semantically related conversations and decisions. | Planned |
+| CockroachDB Distributed Vector Indexing | Retrieve semantically related conversations and decisions. | Live embedding retrieval verified. |
 | CockroachDB Cloud Managed MCP Server | Provide controlled agent access to project memory. | Planned |
-| Amazon Bedrock | Extract, reason over, and respond with project context. | Planned |
-| AWS Lambda | Run the serverless agent workflow. | Planned |
+| Amazon Bedrock | Extract, reason over, and respond with project context. | Live Cohere embedding verified; Nova agent-memory gate pending. |
+| AWS Lambda | Run the serverless agent workflow. | SAM template verified; deployment pending. |
 
 ## Memory Model
 
@@ -84,10 +133,10 @@ Structured records remain authoritative. Vector similarity is used to find conte
 
 ## Roadmap
 
-- [ ] Confirm the MVP requirements and technology stack.
-- [ ] Define the database schema and memory lifecycle.
+- [x] Confirm the MVP requirements and technology stack.
+- [x] Define the database schema and memory lifecycle.
 - [ ] Build one end-to-end memory workflow.
-- [ ] Add conflict detection and next-question generation.
+- [x] Add conflict detection and next-question generation.
 - [ ] Deploy the functional demo on AWS.
 - [ ] Verify security, observability, and failure handling.
 - [ ] Record a public demo video under three minutes.

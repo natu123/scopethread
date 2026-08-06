@@ -1,0 +1,20 @@
+{
+  "name": "@scopethread/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "3.1102.0",
+    "@aws-sdk/client-ssm": "3.1102.0",
+    "@scopethread/bedrock": "*",
+    "@scopethread/core": "*",
+    "@scopethread/database": "*"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "8.10.162"
+  }
+}
