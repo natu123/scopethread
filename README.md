@@ -20,7 +20,7 @@ Re-check the live schema and runtime-role boundaries without applying migrations
 npm run db:verify
 ```
 
-The guarded runtime-user provisioner creates or rotates `scopethread_app`, verifies its inherited privileges through a real login, and saves the unprinted connection string only to the ignored `.env.runtime.local` file. Provisioning remains an explicit live-database gate.
+The guarded runtime-user provisioner has created and verified `scopethread_app` on the live cluster. Its only role membership is `scopethread_runtime`, its inherited table privileges match the least-privilege design, and it has no public-schema `CREATE`. The unprinted connection string is stored only in the ignored `.env.runtime.local` file.
 
 The guarded Parameter Store workflow transfers that runtime connection through the AWS SDK to the fixed `/scopethread/prod/database-url` Standard `SecureString` without placing it in command-line arguments or output. Live storage remains an explicit AWS gate.
 

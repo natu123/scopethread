@@ -108,6 +108,8 @@ The script never accepts a bucket name or distribution ID from free-form command
 
 ## Provision the Runtime Database Identity
 
+Live status: `scopethread_app` was provisioned and verified on 2026-08-06. Re-running the apply command rotates its password, so treat every later run as a separate explicit gate.
+
 Keep `.env.local` for migration and maintenance only. After migration `0003_runtime_role.sql` is applied, verify the local gate:
 
 ```powershell
