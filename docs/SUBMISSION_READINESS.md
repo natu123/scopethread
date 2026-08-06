@@ -9,11 +9,11 @@ This document maps every MVP completion requirement to current evidence. `Prepar
 | Requirement | Required evidence | Current evidence | Status | Remaining gate |
 | --- | --- | --- | --- | --- |
 | Full demo runs from a public AWS URL | Successful `npm run e2e:public-demo -- --stack-name scopethread --apply` against deployed CloudFront and API endpoints | Guarded public E2E and SAM stack are locally verified; no stack is deployed | Prepared | Deploy, publish, and run the paid public E2E |
-| CockroachDB persists structured state, evidence, embeddings, and revisions | Live records for conversations, memories, vectors, links, and agent runs; revision remains after reload | Migrations `0001` and `0002`, fictional seed memory, vector index, and live embedding retrieval were verified; local persisted-memory and revision tests pass | Partially verified | Apply `0003`, provision runtime user, then verify through the public E2E |
+| CockroachDB persists structured state, evidence, embeddings, and revisions | Live records for conversations, memories, vectors, links, and agent runs; revision remains after reload | Migrations `0001` through `0003`, the least-privilege runtime role, fictional seed memory, vector index, and live embedding retrieval were verified; local persisted-memory and revision tests pass | Partially verified | Provision the runtime user, then verify through the public E2E |
 | Distributed Vector Indexing is exercised and visible | Live vector retrieval and `SHOW INDEXES` evidence for `memory_items_embedding_idx` | Live Cohere embedding retrieval and the project-prefixed vector index were verified before this review | Verified live | Capture non-secret evidence in the final video |
 | Managed MCP inspects the same memory read-only | OAuth connection scoped to one cluster, read permission only, allowlisted audit query returns the public agent run and decision chain | Read-only audit runbook and queries are prepared | Prepared | Authenticate and run the live MCP audit |
 | Tests cover validation, isolation, conflict handling, and revisions | Passing automated suite whose assertions cover each behavior | `npm run check` passes 54 tests across eight files plus type, migration, infrastructure, repository-safety, and build checks | Verified locally | Re-run immediately before submission |
-| Public repository is reproducible and contains no credentials | Clean public branch, setup/runbooks, tracked-file secret scan, ignored local secret files | GitHub `main` is current; `validate:repo-safety` scans 71 tracked files; `.env.local` and `.env.runtime.local` are ignored | Verified locally | Re-run after inserting final public links |
+| Public repository is reproducible and contains no credentials | Clean public branch, setup/runbooks, tracked-file secret scan, ignored local secret files | GitHub `main` is current; `validate:repo-safety` scans 72 tracked files; `.env.local` and `.env.runtime.local` are ignored | Verified locally | Re-run after inserting final public links |
 | Public video demonstrates the memory flow in under three minutes | Public video URL and manual review against the storyboard and redaction checklist | A 2 minute 40 second storyboard is prepared in `DEVPOST_DRAFT.md` | Prepared | Record, review, upload, and add the URL |
 
 ## Supporting quality audit
@@ -30,18 +30,17 @@ This document maps every MVP completion requirement to current evidence. `Prepar
 
 ## Live execution order
 
-Run these only after the corresponding explicit approval:
+Migration `0003_runtime_role.sql` was applied and its exact grants were verified on 2026-08-06. Run the remaining steps only after the corresponding explicit approval:
 
-1. Apply migration `0003_runtime_role.sql` and verify the exact grants.
-2. Run `npm run db:provision-runtime -- --apply` to create and verify `scopethread_app`.
-3. Apply the updated scoped IAM policy to `scopethread-dev`.
-4. Run `npm run aws:store-runtime-secret -- --apply`.
-5. Re-run `npm run e2e:agent-memory -- --apply` after AWS confirms Nova quota.
-6. Deploy the SAM stack and publish the static web build.
-7. Run `npm run e2e:public-demo -- --stack-name scopethread --apply`.
-8. Connect CockroachDB Cloud Managed MCP with single-cluster OAuth and read-only authorization, then execute the audit runbook.
-9. Record and review the video.
-10. Replace the Devpost placeholders and perform the final audit.
+1. Run `npm run db:provision-runtime -- --apply` to create and verify `scopethread_app`.
+2. Apply the updated scoped IAM policy to `scopethread-dev`.
+3. Run `npm run aws:store-runtime-secret -- --apply`.
+4. Re-run `npm run e2e:agent-memory -- --apply` after AWS confirms Nova quota.
+5. Deploy the SAM stack and publish the static web build.
+6. Run `npm run e2e:public-demo -- --stack-name scopethread --apply`.
+7. Connect CockroachDB Cloud Managed MCP with single-cluster OAuth and read-only authorization, then execute the audit runbook.
+8. Record and review the video.
+9. Replace the Devpost placeholders and perform the final audit.
 
 ## Current external blocker
 

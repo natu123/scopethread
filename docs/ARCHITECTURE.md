@@ -203,6 +203,7 @@ scopethread/
 - AWS SAM deployment and CockroachDB Cloud Managed MCP verification remain pending.
 - The Managed MCP read-only audit runbook is prepared; live OAuth authorization and verification remain pending.
 - Public demo-session controls pass local API, database, SAM, and browser E2E verification. Migration `0002_demo_session_access.sql` is applied and its columns and token index are verified on the live cluster.
+- Migration `0003_runtime_role.sql` is applied on the live cluster. The `scopethread_runtime` role is verified as `NOLOGIN`, its six-table grant set matches the least-privilege design, and the built-in `public` role no longer has public-schema `CREATE`.
 
 Cloud mutations and paid model invocations require an explicit execution gate. The live vector-memory script also verifies its AWS caller and refuses root credentials.
 
