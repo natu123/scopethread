@@ -56,8 +56,26 @@ export const AnalyzeConversationRequestSchema = z.object({
   idempotencyKey: z.string().trim().min(8).max(128),
 });
 
+export const ConfirmRevisionRequestSchema = z.object({
+  projectId: z.uuid(),
+  agentRunId: z.uuid(),
+  priorMemoryId: z.uuid(),
+  reason: z.string().trim().min(3).max(2000),
+});
+
 export type StoredMemory = z.infer<typeof StoredMemorySchema>;
 export type AnalysisResult = z.infer<typeof AnalysisResultSchema>;
 export type AnalyzeConversationRequest = z.infer<
   typeof AnalyzeConversationRequestSchema
 >;
+export type ConfirmRevisionRequest = z.infer<
+  typeof ConfirmRevisionRequestSchema
+>;
+
+export type RevisionOutcome = {
+  priorMemoryId: string;
+  replacementMemoryId: string;
+  reason: string;
+  revisedAt: string;
+  changed: boolean;
+};

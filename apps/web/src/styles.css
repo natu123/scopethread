@@ -173,8 +173,29 @@ h2 {
 
 .memory-card small,
 .preview-note,
-.form-footer small {
+.form-footer small,
+.revision-actions small {
   color: #71736c;
+}
+
+.memory-card + .memory-card {
+  margin-top: 12px;
+}
+
+.memory-card--superseded {
+  border-left-color: #a9a69d;
+  background: #f0eee8;
+}
+
+.memory-card--superseded p {
+  color: #6f706b;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.memory-card--replacement {
+  border-left-color: #3f6b50;
+  background: #e9f0e8;
 }
 
 .memory-meta {
@@ -326,6 +347,45 @@ textarea:disabled {
   font-size: 0.78rem;
 }
 
+.revision-form,
+.revision-chain {
+  grid-column: 2 / -1;
+  border-top: 1px solid #ddd8cd;
+  padding-top: 22px;
+}
+
+.revision-form {
+  display: grid;
+  gap: 16px;
+}
+
+.revision-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.revision-chain {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 16px;
+  align-items: baseline;
+}
+
+.revision-chain span {
+  color: #725d3e;
+  font-size: 0.72rem;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.revision-chain p {
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+
 @media (max-width: 800px) {
   .workspace {
     padding-top: 46px;
@@ -337,6 +397,11 @@ textarea:disabled {
   }
 
   .preview-note {
+    grid-column: auto;
+  }
+
+  .revision-form,
+  .revision-chain {
     grid-column: auto;
   }
 }
@@ -355,7 +420,8 @@ textarea:disabled {
   }
 
   .panel-heading,
-  .form-footer {
+  .form-footer,
+  .revision-actions {
     align-items: stretch;
     flex-direction: column;
   }

@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   APIGatewayProxyEventV2,
   APIGatewayProxyStructuredResultV2,
 } from "aws-lambda";
-import { handler } from "./handler";
+import { ConfirmRevisionError, type RevisionOutcome } from "@scopethread/core";
+import { createHandler, handler, type HandlerDependencies } from "./handler";
 
 function event(method: string, rawPath: string, body?: string) {
   return {
@@ -20,6 +21,20 @@ async function invoke(
   input: APIGatewayProxyEventV2,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   return (await handler(input)) as APIGatewayProxyStructuredResultV2;
+}
+
+function handlerWithRevision(
+  execute: (input: unknown) => Promise<RevisionOutcome>,
+) {
+  const dependencies: HandlerDependencies = {
+    getAnalyzeUseCase: async () => ({
+      execute: async () => {
+        throw new Error("Analyze was not expected in this test.");
+      },
+    }),
+    getRevisionUseCase: async () => ({ execute }),
+  };
+  return createHandler(dependencies);
 }
 
 const originalDatabaseUrl = process.env.DATABASE_URL;
@@ -92,5 +107,60 @@ describe("API handler", () => {
     expect(JSON.parse(response.body ?? "{}").error).toBe(
       "SERVICE_NOT_CONFIGURED",
     );
+  });
+
+  it("confirms a stored conflict proposal through the revision endpoint", async () => {
+    const execute = vi.fn().mockResolvedValue({
+      priorMemoryId: "10000000-0000-4000-8000-000000000004",
+      replacementMemoryId: "10000000-0000-4000-8000-000000000006",
+      reason: "The client approved booking for the revised launch scope.",
+      revisedAt: "2026-08-06T03:00:00.000Z",
+      changed: true,
+    });
+    const revisionHandler = handlerWithRevision(execute);
+    const body = {
+      projectId: "10000000-0000-4000-8000-000000000002",
+      agentRunId: "10000000-0000-4000-8000-000000000005",
+      priorMemoryId: "10000000-0000-4000-8000-000000000004",
+      reason: "The client approved booking for the revised launch scope.",
+    };
+
+    const response = (await revisionHandler(
+      event("POST", "/revisions", JSON.stringify(body)),
+    )) as APIGatewayProxyStructuredResultV2;
+    const payload = JSON.parse(response.body ?? "{}");
+
+    expect(response.statusCode).toBe(200);
+    expect(payload).toMatchObject({
+      mode: "revision-confirmed",
+      changed: true,
+      priorMemoryId: body.priorMemoryId,
+    });
+    expect(execute).toHaveBeenCalledWith(body);
+  });
+
+  it.each([
+    ["REVISION_NOT_FOUND", 404],
+    ["REVISION_STATE_CONFLICT", 409],
+  ] as const)("maps %s to HTTP %i", async (code, statusCode) => {
+    const revisionHandler = handlerWithRevision(async () => {
+      throw new ConfirmRevisionError(code);
+    });
+
+    const response = (await revisionHandler(
+      event(
+        "POST",
+        "/revisions",
+        JSON.stringify({
+          projectId: "10000000-0000-4000-8000-000000000002",
+          agentRunId: "10000000-0000-4000-8000-000000000005",
+          priorMemoryId: "10000000-0000-4000-8000-000000000004",
+          reason: "The project direction changed.",
+        }),
+      ),
+    )) as APIGatewayProxyStructuredResultV2;
+
+    expect(response.statusCode).toBe(statusCode);
+    expect(JSON.parse(response.body ?? "{}").error).toBe(code);
   });
 });

@@ -59,6 +59,12 @@ Resources:
             ApiId: !Ref HttpApi
             Method: POST
             Path: /analyze
+        ConfirmRevision:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /revisions
       Policies:
         - Statement:
             - Effect: Allow

@@ -1,6 +1,8 @@
 import type {
   AnalysisResult,
   AnalyzeConversationRequest,
+  ConfirmRevisionRequest,
+  RevisionOutcome,
   StoredMemory,
 } from "./models.js";
 
@@ -45,4 +47,13 @@ export interface MemoryRepository {
     durationMs: number;
     errorCode: string;
   }): Promise<void>;
+}
+
+export type ConfirmRevisionResult =
+  | ({ status: "confirmed" } & RevisionOutcome)
+  | { status: "not_found" }
+  | { status: "invalid_state" };
+
+export interface RevisionRepository {
+  confirmRevision(input: ConfirmRevisionRequest): Promise<ConfirmRevisionResult>;
 }

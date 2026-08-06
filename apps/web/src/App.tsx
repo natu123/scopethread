@@ -32,6 +32,15 @@ type AnalyzeErrorResponse = {
   runId?: string;
 };
 
+type RevisionResponse = {
+  mode: "revision-confirmed";
+  priorMemoryId: string;
+  replacementMemoryId: string;
+  reason: string;
+  revisedAt: string;
+  changed: boolean;
+};
+
 export function App() {
   const [conversation, setConversation] = useState(defaultConversation);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -40,6 +49,12 @@ export function App() {
   );
   const [error, setError] = useState<string | null>(null);
   const [runId, setRunId] = useState<string | null>(null);
+  const [revisionReason, setRevisionReason] = useState("");
+  const [revision, setRevision] = useState<RevisionResponse | null>(null);
+  const [revisionStatus, setRevisionStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [revisionError, setRevisionError] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -58,6 +73,10 @@ export function App() {
     setError(null);
     setRunId(null);
     setResult(null);
+    setRevision(null);
+    setRevisionReason("");
+    setRevisionStatus("idle");
+    setRevisionError(null);
 
     try {
       const response = await fetch(`${apiBaseUrl}/analyze`, {
@@ -98,6 +117,59 @@ export function App() {
     }
   }
 
+  async function handleRevisionSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+    const reason = revisionReason.trim();
+    const conflict = result?.conflicts[0];
+    if (
+      !reason ||
+      !conflict ||
+      !runId ||
+      revisionStatus === "loading"
+    ) {
+      return;
+    }
+
+    setRevisionStatus("loading");
+    setRevisionError(null);
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/revisions`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          agentRunId: runId,
+          priorMemoryId: conflict.priorMemoryId,
+          reason,
+        }),
+      });
+      const payload = (await response.json()) as
+        | RevisionResponse
+        | AnalyzeErrorResponse;
+
+      if (!response.ok || !("replacementMemoryId" in payload)) {
+        throw new Error(
+          "message" in payload && payload.message
+            ? payload.message
+            : "The decision revision could not be saved.",
+        );
+      }
+
+      setRevision(payload);
+      setRevisionStatus("success");
+    } catch (caught) {
+      setRevisionStatus("error");
+      setRevisionError(
+        caught instanceof Error
+          ? caught.message
+          : "The decision revision failed unexpectedly.",
+      );
+    }
+  }
+
   const conflict = result?.conflicts[0];
   const nextQuestion =
     conflict?.confirmationQuestion ?? result?.nextQuestions[0] ?? null;
@@ -134,14 +206,27 @@ export function App() {
               <span className="status-pill">1 active decision</span>
             </div>
 
-            <article className="memory-card">
+            <article
+              className={`memory-card${revision ? " memory-card--superseded" : ""}`}
+            >
               <div className="memory-meta">
                 <span>Decision</span>
-                <span>Active</span>
+                <span>{revision ? "Superseded" : "Active"}</span>
               </div>
               <p>{originalDecision}</p>
               <small>Source: Initial requirements conversation</small>
             </article>
+
+            {revision && conflict ? (
+              <article className="memory-card memory-card--replacement">
+                <div className="memory-meta">
+                  <span>Decision</span>
+                  <span>Active</span>
+                </div>
+                <p>{conflict.newStatement}</p>
+                <small>Reason: {revision.reason}</small>
+              </article>
+            ) : null}
 
             <dl className="project-facts">
               <div>
@@ -154,7 +239,7 @@ export function App() {
               </div>
               <div>
                 <dt>Revisions</dt>
-                <dd>0</dd>
+                <dd>{revision ? 1 : 0}</dd>
               </div>
             </dl>
           </aside>
@@ -189,8 +274,13 @@ export function App() {
         </div>
 
         <section className="panel result-panel" aria-labelledby="result-title">
-          <div className="result-status" data-conflict={Boolean(conflict)}>
-            {status === "loading"
+          <div
+            className="result-status"
+            data-conflict={Boolean(conflict && !revision)}
+          >
+            {revision
+              ? "Revision confirmed"
+              : status === "loading"
               ? "Analyzing"
               : conflict
                 ? "Conflict found"
@@ -210,9 +300,55 @@ export function App() {
             </p>
           </div>
           <div className="question-card">
-            <span>Next question</span>
-            <p>{nextQuestion ?? "The next grounded question will appear here."}</p>
+            <span>{revision ? "Decision revision" : "Next question"}</span>
+            <p>
+              {revision
+                ? revision.reason
+                : nextQuestion ?? "The next grounded question will appear here."}
+            </p>
           </div>
+          {conflict && runId && !revision ? (
+            <form className="revision-form" onSubmit={handleRevisionSubmit}>
+              <div>
+                <label htmlFor="revision-reason">Reason for changing direction</label>
+                <textarea
+                  id="revision-reason"
+                  value={revisionReason}
+                  onChange={(event) => setRevisionReason(event.target.value)}
+                  rows={3}
+                  maxLength={2000}
+                  disabled={revisionStatus === "loading"}
+                  placeholder="Record why the earlier decision should be superseded."
+                />
+              </div>
+              <div className="revision-actions">
+                <small>{revisionReason.length.toLocaleString()} / 2,000</small>
+                <button
+                  type="submit"
+                  disabled={
+                    revisionStatus === "loading" ||
+                    revisionReason.trim().length < 3
+                  }
+                >
+                  {revisionStatus === "loading"
+                    ? "Saving revision..."
+                    : "Confirm revision"}
+                </button>
+              </div>
+              {revisionError ? (
+                <p className="form-error" role="alert">{revisionError}</p>
+              ) : null}
+            </form>
+          ) : null}
+          {revision && conflict ? (
+            <div className="revision-chain" aria-label="Decision revision chain">
+              <span>Superseded decision</span>
+              <p>{originalDecision}</p>
+              <span aria-hidden="true">↓</span>
+              <span>Active replacement</span>
+              <p>{conflict.newStatement}</p>
+            </div>
+          ) : null}
           <p className="preview-note">
             {runId
               ? `Agent run: ${runId}`

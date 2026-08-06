@@ -56,6 +56,15 @@ if (
   );
 }
 
+const revisionEvent = apiFunction.Properties?.Events?.ConfirmRevision;
+if (
+  revisionEvent?.Type !== "HttpApi" ||
+  revisionEvent.Properties?.Method !== "POST" ||
+  revisionEvent.Properties?.Path !== "/revisions"
+) {
+  throw new Error("The Lambda must expose POST /revisions through HTTP API.");
+}
+
 const developmentPolicy = JSON.parse(
   await readFile(developmentPolicyPath, "utf8"),
 );

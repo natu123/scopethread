@@ -6,7 +6,9 @@ const projectId = "10000000-0000-4000-8000-000000000002";
 const conversationId = "10000000-0000-4000-8000-000000000003";
 const priorMemoryId = "10000000-0000-4000-8000-000000000004";
 const runId = "10000000-0000-4000-8000-000000000005";
+const replacementMemoryId = "10000000-0000-4000-8000-000000000006";
 const newStatement = "Add an online booking button to every page.";
+const revisedAt = new Date("2026-08-06T03:00:00.000Z");
 
 const saveInput = {
   request: {
@@ -40,6 +42,13 @@ const saveInput = {
   memoryEmbeddings: [Array.from({ length: 1024 }, () => 0.25)],
   runId,
   durationMs: 125,
+};
+
+const revisionInput = {
+  projectId,
+  agentRunId: runId,
+  priorMemoryId,
+  reason: "The client approved online booking after changing the launch scope.",
 };
 
 function statement(value: unknown): string {
@@ -189,5 +198,184 @@ describe("CockroachMemoryRepository agent runs", () => {
       250,
       "BEDROCK_THROTTLED",
     ]);
+  });
+});
+
+describe("CockroachMemoryRepository revisions", () => {
+  it("supersedes the prior decision and activates its conflict proposal atomically", async () => {
+    const query = vi.fn(async (text: string) => {
+      const sql = statement(text);
+      if (sql.startsWith("SELECT replacement.id")) {
+        return { rowCount: 1, rows: [{ id: replacementMemoryId }] };
+      }
+      if (sql.startsWith("SELECT id, kind, status")) {
+        return {
+          rowCount: 2,
+          rows: [
+            { id: priorMemoryId, kind: "decision", status: "active" },
+            {
+              id: replacementMemoryId,
+              kind: "requirement",
+              status: "proposed",
+            },
+          ],
+        };
+      }
+      if (sql.startsWith("SELECT reason, created_at")) {
+        return { rowCount: 0, rows: [] };
+      }
+      if (sql.startsWith("INSERT INTO memory_links")) {
+        return {
+          rowCount: 1,
+          rows: [{ reason: revisionInput.reason, created_at: revisedAt }],
+        };
+      }
+      return { rowCount: 1, rows: [] };
+    });
+    const { repository, release } = repositoryWithClient(query);
+
+    await expect(repository.confirmRevision(revisionInput)).resolves.toEqual({
+      status: "confirmed",
+      priorMemoryId,
+      replacementMemoryId,
+      reason: revisionInput.reason,
+      revisedAt: revisedAt.toISOString(),
+      changed: true,
+    });
+
+    const statements = query.mock.calls.map(([text]) => statement(text));
+    expect(statements).toEqual([
+      "BEGIN",
+      expect.stringMatching(/^SELECT replacement.id/),
+      expect.stringMatching(/^SELECT id, kind, status/),
+      expect.stringMatching(/^SELECT reason, created_at/),
+      expect.stringMatching(/^UPDATE memory_items SET status = 'superseded'/),
+      expect.stringMatching(/^UPDATE memory_items SET kind = 'decision'/),
+      expect.stringMatching(/^INSERT INTO memory_links/),
+      "COMMIT",
+    ]);
+    expect(release).toHaveBeenCalledOnce();
+  });
+
+  it("returns the stored revision without changing memory on retry", async () => {
+    const query = vi.fn(async (text: string) => {
+      const sql = statement(text);
+      if (sql.startsWith("SELECT replacement.id")) {
+        return { rowCount: 1, rows: [{ id: replacementMemoryId }] };
+      }
+      if (sql.startsWith("SELECT id, kind, status")) {
+        return {
+          rowCount: 2,
+          rows: [
+            { id: priorMemoryId, kind: "decision", status: "superseded" },
+            {
+              id: replacementMemoryId,
+              kind: "decision",
+              status: "active",
+            },
+          ],
+        };
+      }
+      if (sql.startsWith("SELECT reason, created_at")) {
+        return {
+          rowCount: 1,
+          rows: [{ reason: revisionInput.reason, created_at: revisedAt }],
+        };
+      }
+      return { rowCount: 1, rows: [] };
+    });
+    const { repository } = repositoryWithClient(query);
+
+    await expect(repository.confirmRevision(revisionInput)).resolves.toEqual({
+      status: "confirmed",
+      priorMemoryId,
+      replacementMemoryId,
+      reason: revisionInput.reason,
+      revisedAt: revisedAt.toISOString(),
+      changed: false,
+    });
+
+    const statements = query.mock.calls.map(([text]) => statement(text));
+    expect(statements.some((sql) => sql.startsWith("UPDATE memory_items"))).toBe(
+      false,
+    );
+    expect(statements.some((sql) => sql.startsWith("INSERT INTO memory_links"))).toBe(
+      false,
+    );
+    expect(statements.at(-1)).toBe("COMMIT");
+  });
+
+  it("rejects a revision when the prior memory is no longer active", async () => {
+    const query = vi.fn(async (text: string) => {
+      const sql = statement(text);
+      if (sql.startsWith("SELECT replacement.id")) {
+        return { rowCount: 1, rows: [{ id: replacementMemoryId }] };
+      }
+      if (sql.startsWith("SELECT id, kind, status")) {
+        return {
+          rowCount: 2,
+          rows: [
+            { id: priorMemoryId, kind: "decision", status: "dismissed" },
+            {
+              id: replacementMemoryId,
+              kind: "requirement",
+              status: "proposed",
+            },
+          ],
+        };
+      }
+      if (sql.startsWith("SELECT reason, created_at")) {
+        return { rowCount: 0, rows: [] };
+      }
+      return { rowCount: 1, rows: [] };
+    });
+    const { repository } = repositoryWithClient(query);
+
+    await expect(repository.confirmRevision(revisionInput)).resolves.toEqual({
+      status: "invalid_state",
+    });
+    expect(
+      query.mock.calls
+        .map(([text]) => statement(text))
+        .some((sql) => sql.startsWith("UPDATE memory_items")),
+    ).toBe(false);
+  });
+
+  it("rolls back both memory transitions when the replacement update fails", async () => {
+    const query = vi.fn(async (text: string) => {
+      const sql = statement(text);
+      if (sql.startsWith("SELECT replacement.id")) {
+        return { rowCount: 1, rows: [{ id: replacementMemoryId }] };
+      }
+      if (sql.startsWith("SELECT id, kind, status")) {
+        return {
+          rowCount: 2,
+          rows: [
+            { id: priorMemoryId, kind: "decision", status: "active" },
+            {
+              id: replacementMemoryId,
+              kind: "requirement",
+              status: "proposed",
+            },
+          ],
+        };
+      }
+      if (sql.startsWith("SELECT reason, created_at")) {
+        return { rowCount: 0, rows: [] };
+      }
+      if (sql.startsWith("UPDATE memory_items SET kind = 'decision'")) {
+        return { rowCount: 0, rows: [] };
+      }
+      return { rowCount: 1, rows: [] };
+    });
+    const { repository, release } = repositoryWithClient(query);
+
+    await expect(repository.confirmRevision(revisionInput)).rejects.toThrow(
+      "revision memory transition could not be completed",
+    );
+    expect(query.mock.calls.map(([text]) => statement(text))).toContain(
+      "ROLLBACK",
+    );
+    expect(release).toHaveBeenCalledOnce();
   });
 });
