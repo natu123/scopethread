@@ -19,6 +19,7 @@ const template = document.toJS();
 const requiredResources = [
   "HttpApi",
   "ApiFunction",
+  "ApiFunctionLogGroup",
   "WebBucket",
   "WebDistribution",
 ];
@@ -54,6 +55,20 @@ if (
   throw new Error(
     "The Lambda artifact must use an explicit CommonJS file extension.",
   );
+}
+
+const apiFunctionLogGroup = template.Resources.ApiFunctionLogGroup;
+if (
+  apiFunctionLogGroup.Type !== "AWS::Logs::LogGroup" ||
+  apiFunctionLogGroup.Properties?.RetentionInDays !== 14
+) {
+  throw new Error("The Lambda log group must retain logs for exactly 14 days.");
+}
+if (
+  apiFunctionLogGroup.DeletionPolicy !== "Delete" ||
+  apiFunctionLogGroup.UpdateReplacePolicy !== "Delete"
+) {
+  throw new Error("The Lambda log group must be removed with the demo stack.");
 }
 
 const revisionEvent = apiFunction.Properties?.Events?.ConfirmRevision;
@@ -157,5 +172,5 @@ for (const action of forbiddenDevelopmentActions) {
 }
 
 console.log(
-  "Infrastructure template and scoped Bedrock development policy are valid.",
+  "Infrastructure template, log retention, and scoped Bedrock development policy are valid.",
 );

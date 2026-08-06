@@ -154,6 +154,7 @@ The exact DDL remains subject to verification against the selected CockroachDB C
 
 - AWS Lambda logs include request ID, run ID, duration, result category, and model identifier.
 - Logs exclude conversation content, embeddings, credentials, and connection strings.
+- The Lambda log group retains operational logs for 14 days and is deleted with the demo stack.
 - CockroachDB stores durable `agent_runs` records for user-visible traceability.
 - A run is inserted as `started` before external model calls. Successful memory persistence and the transition to `succeeded` commit in the same transaction; failures store an allowlisted error category without raw exception messages.
 - MCP access remains auditable through the CockroachDB Cloud operator workflow.

@@ -135,6 +135,14 @@ Resources:
         Sourcemap: true
         Target: es2023
 
+  ApiFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ApiFunction}"
+      RetentionInDays: 14
+
   WebBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
