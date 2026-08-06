@@ -1,6 +1,6 @@
 # ScopeThread MVP Architecture
 
-Status: Implemented scaffold with live vector-memory verification; Nova live verification pending quota activation
+Status: Local end-to-end workflow and demo-session controls implemented; live migration, Nova verification, and deployment pending
 
 ## Decision Summary
 
@@ -68,8 +68,8 @@ This separation keeps both CockroachDB integrations meaningful:
 
 ### Analyze a new conversation
 
-1. The browser sends project ID, conversation text, and an idempotency key to API Gateway.
-2. Lambda validates the request and resolves the demo session.
+1. The browser sends its short-lived bearer token, project ID, conversation text, and an idempotency key to API Gateway.
+2. Lambda hashes the token and atomically verifies project ownership, expiry, and the remaining analysis allowance in CockroachDB.
 3. Lambda creates a query embedding with Cohere Embed Multilingual v3.
 4. Lambda retrieves active structured memory and semantically similar memory for the project.
 5. Lambda sends the new text and retrieved evidence to the configured Bedrock chat model.
@@ -89,7 +89,7 @@ This separation keeps both CockroachDB integrations meaningful:
 
 The detailed schema will be defined separately, but the MVP needs these logical records:
 
-- `demo_sessions` for short-lived public demo isolation.
+- `demo_sessions` for short-lived public demo isolation, hashed bearer tokens, and atomic analysis allowances.
 - `projects` for the client project boundary.
 - `conversations` for immutable source evidence.
 - `memory_items` for requirements, decisions, rationales, and open questions.
@@ -127,6 +127,9 @@ The exact DDL remains subject to verification against the selected CockroachDB C
 - Use parameterized SQL and allowlisted operations rather than model-generated SQL.
 - Use separate database identities for schema migration, application runtime, and read-only auditing.
 - Scope all application queries by demo session and project.
+- Store only SHA-256 hashes of opaque demo-session bearer tokens; never store or log token plaintext.
+- Reject expired, cross-project, and exhausted sessions before any Bedrock invocation.
+- Apply API Gateway throttling to every route and a stricter limit to session creation.
 - Store the CockroachDB connection string as a standard Parameter Store `SecureString`; Lambda retrieves it once per cold start and never logs it.
 - Restrict Lambda IAM permissions to the selected Bedrock models and required AWS resources.
 - Apply API request-size limits, throttling, and basic abuse controls before making the demo public.
@@ -178,6 +181,7 @@ scopethread/
 - The CockroachDB Cloud connection, migrations, structured demo memory, and vector index are verified.
 - Live Bedrock inference is pending sign-in as the scoped `scopethread-dev` IAM user.
 - AWS SAM deployment and CockroachDB Cloud Managed MCP verification remain pending.
+- Public demo-session controls pass local API, database, SAM, and browser E2E verification. Migration `0002_demo_session_access.sql` remains unapplied to the live cluster.
 
 Cloud mutations and paid model invocations require an explicit execution gate. The live vector-memory script also verifies its AWS caller and refuses root credentials.
 

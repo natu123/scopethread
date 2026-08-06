@@ -1,6 +1,6 @@
 # ScopeThread MVP Requirements
 
-Status: Proposed for review
+Status: Implemented locally; live migration and public deployment pending
 
 ## Product Goal
 
@@ -25,6 +25,8 @@ Acceptance criteria:
 - A project has a stable identifier, name, and creation timestamp.
 - Every conversation and memory item belongs to exactly one project.
 - Retrieval is always constrained to the selected project.
+- Public demo access uses a short-lived opaque token whose hash is stored with the demo session.
+- The API rejects a token that does not own the requested project.
 
 ### FR-2: Conversation ingestion
 
@@ -144,5 +146,5 @@ The MVP is complete when:
 ## Open Decisions
 
 - Verify successful runtime invocation of `global.amazon.nova-2-lite-v1:0` and `cohere.embed-multilingual-v3` through the scoped development identity.
-- Confirm whether the public demo uses short-lived anonymous sessions or a single resettable fictional workspace.
+- Apply and verify the short-lived anonymous-session migration against CockroachDB Cloud.
 - Confirm CockroachDB Cloud Managed MCP authentication before the final demo.
