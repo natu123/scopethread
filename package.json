@@ -18,6 +18,9 @@
     "db:seed-demo": "node --env-file=.env.local scripts/seed-demo-memory.mjs",
     "e2e:agent-memory": "node --env-file=.env.local scripts/e2e-agent-memory.mjs",
     "e2e:vector-memory": "node --env-file=.env.local scripts/e2e-vector-memory.mjs",
+    "sam:build": "node scripts/run-sam.mjs build --template-file infra/template.yaml",
+    "sam:check": "npm run sam:validate && npm run sam:build && node scripts/check-sam-artifact.mjs",
+    "sam:validate": "node scripts/run-sam.mjs validate --lint --template-file infra/template.yaml",
     "dev": "npm run dev --workspace @scopethread/web",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -30,6 +33,7 @@
   "devDependencies": {
     "@aws-sdk/client-sts": "^3.1102.0",
     "@types/node": "26.1.2",
+    "esbuild": "0.28.1",
     "typescript": "7.0.2",
     "vitest": "4.1.10",
     "yaml": "2.9.0"

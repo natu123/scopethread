@@ -44,8 +44,8 @@ Resources:
   ApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ../apps/api
-      Handler: src/handler.handler
+      CodeUri: ..
+      Handler: apps/api/src/handler.handler
       Events:
         Health:
           Type: HttpApi
@@ -76,9 +76,11 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
-          - src/handler.ts
-        Format: esm
+          - apps/api/src/handler.ts
+        Format: cjs
         Minify: true
+        OutExtension:
+          - .js=.cjs
         Sourcemap: true
         Target: es2023
 

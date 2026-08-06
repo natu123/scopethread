@@ -22,6 +22,7 @@ Requirements:
 
 - Node.js 24 or later.
 - npm 11 or later.
+- AWS SAM CLI 1.165.0 for infrastructure builds.
 
 Install dependencies and start the web scaffold:
 
@@ -35,6 +36,15 @@ Run the complete local verification suite:
 ```bash
 npm run check
 ```
+
+Validate the SAM template, build the Lambda bundle, and run a health check
+against the built artifact:
+
+```bash
+npm run sam:check
+```
+
+This command is local-only. It does not deploy resources or call AWS services.
 
 The browser requires a configured `VITE_API_BASE_URL` before it submits an analysis request. It does not simulate a successful agent response when the API is unavailable.
 

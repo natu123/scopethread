@@ -29,6 +29,33 @@ for (const resource of requiredResources) {
   }
 }
 
+const apiFunction = template.Resources.ApiFunction;
+const buildProperties = apiFunction.Metadata?.BuildProperties;
+
+if (apiFunction.Properties?.CodeUri !== "..") {
+  throw new Error("The Lambda build context must include the monorepo root.");
+}
+
+if (apiFunction.Properties?.Handler !== "apps/api/src/handler.handler") {
+  throw new Error("The Lambda handler must resolve from the monorepo root.");
+}
+
+if (
+  apiFunction.Metadata?.BuildMethod !== "esbuild" ||
+  !buildProperties?.EntryPoints?.includes("apps/api/src/handler.ts")
+) {
+  throw new Error("The Lambda must bundle the TypeScript handler with esbuild.");
+}
+
+if (
+  buildProperties.Format !== "cjs" ||
+  !buildProperties.OutExtension?.includes(".js=.cjs")
+) {
+  throw new Error(
+    "The Lambda artifact must use an explicit CommonJS file extension.",
+  );
+}
+
 const developmentPolicy = JSON.parse(
   await readFile(developmentPolicyPath, "utf8"),
 );
