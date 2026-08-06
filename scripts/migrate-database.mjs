@@ -12,6 +12,11 @@ const expectedTables = [
   "memory_links",
   "projects",
 ];
+const expectedSessionColumns = [
+  "analysis_requests",
+  "max_analysis_requests",
+  "token_hash",
+];
 
 if (!shouldApply) {
   console.error("Migration not applied. Re-run with --apply after reviewing the target.");
@@ -54,8 +59,24 @@ if (!shouldApply) {
       [expectedTables],
     );
     const indexesResult = await pool.query("SHOW INDEX FROM memory_items");
+    const sessionColumnsResult = await pool.query(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND table_name = 'demo_sessions'
+         AND column_name = ANY($1::STRING[])
+       ORDER BY column_name`,
+      [expectedSessionColumns],
+    );
+    const sessionIndexesResult = await pool.query("SHOW INDEX FROM demo_sessions");
     const createdTables = tablesResult.rows.map((row) => row.table_name);
     const indexNames = indexesResult.rows.map((row) => row.index_name);
+    const sessionColumns = sessionColumnsResult.rows.map(
+      (row) => row.column_name,
+    );
+    const sessionIndexNames = sessionIndexesResult.rows.map(
+      (row) => row.index_name,
+    );
 
     if (createdTables.length !== expectedTables.length) {
       throw new Error(
@@ -65,9 +86,19 @@ if (!shouldApply) {
     if (!indexNames.includes("memory_items_embedding_idx")) {
       throw new Error("Vector index memory_items_embedding_idx was not found.");
     }
+    if (sessionColumns.length !== expectedSessionColumns.length) {
+      throw new Error(
+        `Expected ${expectedSessionColumns.length} demo session access columns, found ${sessionColumns.length}.`,
+      );
+    }
+    if (!sessionIndexNames.includes("demo_sessions_token_hash_idx")) {
+      throw new Error("Index demo_sessions_token_hash_idx was not found.");
+    }
 
     console.log(`Tables verified: ${createdTables.join(", ")}`);
     console.log("Vector index verified: memory_items_embedding_idx");
+    console.log(`Demo session columns verified: ${sessionColumns.join(", ")}`);
+    console.log("Demo session index verified: demo_sessions_token_hash_idx");
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown migration error";
     console.error(`Migration failed: ${message}`);
