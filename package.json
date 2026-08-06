@@ -25,7 +25,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "validate:infra": "node scripts/validate-infra.mjs"
+    "validate:infra": "node scripts/validate-infra.mjs",
+    "web:publish": "node scripts/publish-web.mjs"
   },
   "engines": {
     "node": ">=24.0.0"

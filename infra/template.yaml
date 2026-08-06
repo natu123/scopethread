@@ -242,3 +242,6 @@ Outputs:
   DistributionDomainName:
     Description: Public CloudFront domain for ScopeThread.
     Value: !GetAtt WebDistribution.DomainName
+  DistributionId:
+    Description: CloudFront distribution ID used by the guarded web publisher.
+    Value: !Ref WebDistribution

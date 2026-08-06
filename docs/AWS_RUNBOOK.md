@@ -78,3 +78,30 @@ Use the root profile only for account-level administration. End its current cach
 ```powershell
 aws logout --profile scopethread
 ```
+
+## Publish the Static Web Application
+
+Deploying the SAM stack and publishing the browser build are separate external changes. The SAM stack must exist successfully before this step.
+
+First, verify the local safety gate. This does not call AWS:
+
+```powershell
+npm run web:publish -- --stack-name scopethread
+```
+
+After reviewing the exact stack name and receiving explicit approval, publish with:
+
+```powershell
+npm run web:publish -- --stack-name scopethread --apply
+```
+
+The guarded publisher performs these operations in order:
+
+1. Refuses root and requires the `scopethread-dev` IAM user.
+2. Reads the deployed stack outputs from CloudFormation.
+3. Builds the web application with the deployed `ApiUrl` as `VITE_API_BASE_URL`.
+4. Synchronizes only `apps/web/dist` to the stack's retained S3 web bucket.
+5. Deletes stale objects only inside that target bucket.
+6. Creates a CloudFront invalidation for the published files.
+
+The script never accepts a bucket name or distribution ID from free-form command input. Both targets must come from the named CloudFormation stack.

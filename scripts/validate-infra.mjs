@@ -99,6 +99,17 @@ if (!defaultCacheBehavior?.ResponseHeadersPolicyId) {
   );
 }
 
+for (const output of [
+  "ApiUrl",
+  "WebBucketName",
+  "DistributionDomainName",
+  "DistributionId",
+]) {
+  if (!template.Outputs?.[output]?.Value) {
+    throw new Error(`Missing deployment output required by publisher: ${output}`);
+  }
+}
+
 const revisionEvent = apiFunction.Properties?.Events?.ConfirmRevision;
 const sessionEvent = apiFunction.Properties?.Events?.CreateSession;
 const memoryEvent = apiFunction.Properties?.Events?.InspectMemory;
