@@ -101,6 +101,8 @@ The fixed `scopethread-bootstrap` stack creates a retained private and versioned
 
 ## Deploy the SAM Application
 
+Live status: the fixed `scopethread` stack and all 15 resources reached `CREATE_COMPLETE` on 2026-08-06. API health and the no-Bedrock session-memory smoke path are verified. Re-running apply is an explicit stack-update gate.
+
 Authenticate as `scopethread-dev`, then run the local gate:
 
 ```powershell

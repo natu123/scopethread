@@ -6,7 +6,7 @@ ScopeThread is a persistent-memory agent for web production requirements. It tur
 
 ## Status
 
-ScopeThread has a verified application scaffold for the web interface, Lambda API, core domain workflow, Bedrock adapters, CockroachDB vector queries, database migration, and AWS SAM infrastructure. The CockroachDB Cloud connection, migration, vector index, fictional demo memory, live Cohere embedding retrieval, and one-time AWS deployment bootstrap have been verified in Singapore. Nova 2 Lite live inference is waiting for AWS to activate the new account's non-zero daily token quota. Application-stack deployment remains a later explicit gate.
+ScopeThread has a verified application scaffold for the web interface, Lambda API, core domain workflow, Bedrock adapters, CockroachDB vector queries, database migration, and AWS SAM infrastructure. The CockroachDB Cloud connection, migration, vector index, fictional demo memory, live Cohere embedding retrieval, one-time deployment bootstrap, and AWS application stack have been verified in Singapore. The deployed API health and a no-Bedrock session-to-memory smoke path pass against the runtime SQL identity. Nova 2 Lite live inference is waiting for AWS to activate the new account's non-zero daily token quota, and static web publication remains a later explicit gate.
 
 Agent-run observability is implemented locally. Every valid analysis receives a durable run ID, model identifiers, status, duration, and a safe error category. Successful memory writes and the run's `succeeded` transition share one CockroachDB transaction; failed model calls do not create partial memory.
 
@@ -171,7 +171,7 @@ The planned hackathon integrations are:
 | CockroachDB Distributed Vector Indexing | Retrieve semantically related conversations and decisions. | Live embedding retrieval verified. |
 | CockroachDB Cloud Managed MCP Server | Provide controlled agent access to project memory. | Read-only audit runbook ready; live verification pending. |
 | Amazon Bedrock | Extract, reason over, and respond with project context. | Live Cohere embedding verified; Nova agent-memory gate pending. |
-| AWS Lambda | Run the serverless agent workflow. | SAM template verified; deployment pending. |
+| AWS Lambda | Run the serverless agent workflow. | Stack, API health, SSM runtime configuration, and CockroachDB session-memory smoke path verified live. |
 
 ## Memory Model
 

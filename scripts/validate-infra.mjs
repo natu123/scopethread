@@ -94,6 +94,11 @@ if (
 }
 
 const webSecurityHeadersPolicy = template.Resources.WebSecurityHeadersPolicy;
+if (template.Resources.WebBucket.DeletionPolicy !== "RetainExceptOnCreate") {
+  throw new Error(
+    "The web bucket must survive normal deletion without leaking from failed creates.",
+  );
+}
 const securityHeaders =
   webSecurityHeadersPolicy.Properties?.ResponseHeadersPolicyConfig
     ?.SecurityHeadersConfig;
@@ -264,6 +269,21 @@ for (const resource of [
     throw new Error(`Missing deployment bootstrap resource: ${resource}`);
   }
 }
+for (const resource of [
+  "ArtifactBucket",
+  "ApiFunctionExecutionRole",
+  "CloudFormationExecutionRole",
+  "DevelopmentDeploymentPolicy",
+]) {
+  if (
+    deploymentBootstrap.Resources[resource].DeletionPolicy !==
+    "RetainExceptOnCreate"
+  ) {
+    throw new Error(
+      `${resource} must be retained except when its initial create rolls back.`,
+    );
+  }
+}
 
 const artifactBucket = deploymentBootstrap.Resources.ArtifactBucket;
 if (
@@ -328,12 +348,29 @@ for (const forbiddenAction of [
 const passLambdaRole = cloudFormationStatements.find(
   (statement) => statement.Sid === "PassOnlyScopeThreadLambdaRole",
 );
+const serverlessTransform = cloudFormationStatements.find(
+  (statement) => statement.Sid === "UseServerlessTransform",
+);
+const httpApiManagement = cloudFormationStatements.find(
+  (statement) => statement.Sid === "ManageScopeThreadHttpApi",
+);
+const httpApiResources = Array.isArray(httpApiManagement?.Resource)
+  ? httpApiManagement.Resource
+  : [httpApiManagement?.Resource];
 if (
   passLambdaRole?.Action !== "iam:PassRole" ||
   passLambdaRole?.Condition?.StringEquals?.["iam:PassedToService"] !==
-    "lambda.amazonaws.com"
+    "lambda.amazonaws.com" ||
+  serverlessTransform?.Action !== "cloudformation:CreateChangeSet" ||
+  !String(serverlessTransform?.Resource).endsWith(
+    ":aws:transform/Serverless-2016-10-31",
+  ) ||
+  !httpApiResources.some((resource) => String(resource).endsWith("::/apis*")) ||
+  !httpApiResources.some((resource) => String(resource).endsWith("::/tags/*"))
 ) {
-  throw new Error("CloudFormation may pass only the fixed Lambda execution role.");
+  throw new Error(
+    "CloudFormation must use only the fixed Lambda role and SAM transform.",
+  );
 }
 
 const developerStatements =
@@ -344,11 +381,19 @@ const passCloudFormationRole = developerStatements.find(
 const deployStack = developerStatements.find(
   (statement) => statement.Sid === "DeployOnlyScopeThreadStack",
 );
+const executeChangeSet = developerStatements.find(
+  (statement) => statement.Sid === "ExecuteScopeThreadChangeSet",
+);
+const executeResources = Array.isArray(executeChangeSet?.Resource)
+  ? executeChangeSet.Resource
+  : [executeChangeSet?.Resource];
 if (
   passCloudFormationRole?.Action !== "iam:PassRole" ||
   passCloudFormationRole?.Condition?.StringEquals?.["iam:PassedToService"] !==
     "cloudformation.amazonaws.com" ||
-  deployStack?.Condition?.StringEquals?.["cloudformation:RoleArn"] === undefined
+  deployStack?.Condition?.StringEquals?.["cloudformation:RoleArn"] === undefined ||
+  !executeResources.some((resource) => String(resource).includes(":stack/scopethread/")) ||
+  !executeResources.some((resource) => String(resource).includes(":changeSet/samcli-deploy"))
 ) {
   throw new Error(
     "Development deployment access must require the fixed CloudFormation role.",

@@ -78,7 +78,7 @@ Anonymous model access needed multiple layers of control. ScopeThread combines s
 
 #### Keeping deployment access narrow
 
-The first deployment bootstrap reached the IAM user's aggregate inline-policy size limit. Instead of broadening the user or switching to administrator access, we moved only the deployment permissions into a customer-managed policy. The final bootstrap separates the development user, CloudFormation service role, Lambda execution role, and artifact bucket, and the application deployer can pass only the fixed CloudFormation role for the fixed stack.
+The first deployment bootstrap reached the IAM user's aggregate inline-policy size limit. Instead of broadening the user or switching to administrator access, we moved only the deployment permissions into a customer-managed policy. SAM deployment then exposed three resource-level details: the transform ARN, both stack and change-set ARNs during execution, and the API Gateway tag endpoint. We added only those exact paths. The final bootstrap separates the development user, CloudFormation service role, Lambda execution role, and artifact bucket, and the application deployer can pass only the fixed CloudFormation role for the fixed stack.
 
 #### External model activation
 

@@ -16,7 +16,7 @@ Parameters:
 Resources:
   ArtifactBucket:
     Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
+    DeletionPolicy: RetainExceptOnCreate
     UpdateReplacePolicy: Retain
     Properties:
       BucketEncryption:
@@ -33,7 +33,7 @@ Resources:
 
   ApiFunctionExecutionRole:
     Type: AWS::IAM::Role
-    DeletionPolicy: Retain
+    DeletionPolicy: RetainExceptOnCreate
     UpdateReplacePolicy: Retain
     Properties:
       RoleName: scopethread-lambda-execution
@@ -78,7 +78,7 @@ Resources:
 
   CloudFormationExecutionRole:
     Type: AWS::IAM::Role
-    DeletionPolicy: Retain
+    DeletionPolicy: RetainExceptOnCreate
     UpdateReplacePolicy: Retain
     Properties:
       RoleName: scopethread-cloudformation-execution
@@ -101,6 +101,10 @@ Resources:
                 Condition:
                   StringEquals:
                     iam:PassedToService: lambda.amazonaws.com
+              - Sid: UseServerlessTransform
+                Effect: Allow
+                Action: cloudformation:CreateChangeSet
+                Resource: !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31"
               - Sid: ManageScopeThreadLambda
                 Effect: Allow
                 Action:
@@ -165,7 +169,9 @@ Resources:
               - Sid: ManageScopeThreadHttpApi
                 Effect: Allow
                 Action: apigateway:*
-                Resource: !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/apis*"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/apis*"
+                  - !Sub "arn:${AWS::Partition}:apigateway:${AWS::Region}::/tags/*"
               - Sid: ManageScopeThreadCloudFront
                 Effect: Allow
                 Action:
@@ -189,7 +195,7 @@ Resources:
 
   DevelopmentDeploymentPolicy:
     Type: AWS::IAM::ManagedPolicy
-    DeletionPolicy: Retain
+    DeletionPolicy: RetainExceptOnCreate
     UpdateReplacePolicy: Retain
     Properties:
       ManagedPolicyName: ScopeThreadDeployment
@@ -228,7 +234,9 @@ Resources:
             Action:
               - cloudformation:DeleteChangeSet
               - cloudformation:ExecuteChangeSet
-            Resource: !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:changeSet/samcli-deploy*/*"
+            Resource:
+              - !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/scopethread/*"
+              - !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:changeSet/samcli-deploy*/*"
           - Sid: PassOnlyScopeThreadCloudFormationRole
             Effect: Allow
             Action: iam:PassRole

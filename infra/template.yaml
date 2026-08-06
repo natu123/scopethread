@@ -137,7 +137,7 @@ Resources:
 
   WebBucket:
     Type: AWS::S3::Bucket
-    DeletionPolicy: Retain
+    DeletionPolicy: RetainExceptOnCreate
     UpdateReplacePolicy: Retain
     Properties:
       PublicAccessBlockConfiguration:
