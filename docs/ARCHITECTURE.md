@@ -148,6 +148,7 @@ The exact DDL remains subject to verification against the selected CockroachDB C
 - Reject expired, cross-project, and exhausted sessions before any Bedrock invocation.
 - Apply API Gateway throttling to every route and a stricter limit to session creation.
 - Store the CockroachDB connection string as a standard Parameter Store `SecureString`; Lambda retrieves it once per cold start and never logs it.
+- Validate the decrypted runtime URL against the fixed SQL identity, database, password presence, and verified TLS before creating the cached connection pool; normalize SSM failures without retaining raw error details.
 - Restrict Lambda IAM permissions to the selected Bedrock models and required AWS resources.
 - Bootstrap a dedicated CloudFormation service role and Lambda execution role once; allow `scopethread-dev` to pass only the fixed CloudFormation role for the fixed application stack.
 - Keep SAM artifacts in a private, encrypted, versioned bucket and prohibit direct root deployment of the application stack.

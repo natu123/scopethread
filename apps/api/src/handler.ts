@@ -1,7 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { performance } from "node:perf_hooks";
 import { BedrockRuntimeClient } from "@aws-sdk/client-bedrock-runtime";
-import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 import type {
   APIGatewayProxyEventV2,
   APIGatewayProxyResultV2,
@@ -27,10 +26,10 @@ import {
   type MemoryInspectionRepository,
 } from "@scopethread/core";
 import { CockroachMemoryRepository, getPool } from "@scopethread/database";
-
-class ConfigurationError extends Error {
-  override readonly name = "ConfigurationError";
-}
+import {
+  ConfigurationError,
+  loadDatabaseUrl,
+} from "./runtime-configuration.js";
 
 const MAX_REQUEST_BODY_BYTES = 16 * 1024;
 
@@ -51,36 +50,6 @@ function json(
     },
     body: JSON.stringify(body),
   };
-}
-
-async function loadDatabaseUrl(): Promise<string> {
-  const localConnectionString = process.env.DATABASE_URL?.trim();
-  if (localConnectionString) {
-    return localConnectionString;
-  }
-
-  const parameterName = process.env.DATABASE_URL_PARAMETER_NAME?.trim();
-  if (!parameterName) {
-    throw new ConfigurationError(
-      "DATABASE_URL or DATABASE_URL_PARAMETER_NAME is not configured.",
-    );
-  }
-
-  const ssm = new SSMClient({
-    region: process.env.AWS_REGION || "ap-southeast-1",
-  });
-  try {
-    const response = await ssm.send(
-      new GetParameterCommand({ Name: parameterName, WithDecryption: true }),
-    );
-    const connectionString = response.Parameter?.Value?.trim();
-    if (!connectionString) {
-      throw new ConfigurationError("The database URL parameter is empty.");
-    }
-    return connectionString;
-  } finally {
-    ssm.destroy();
-  }
 }
 
 async function createRepository(): Promise<CockroachMemoryRepository> {

@@ -24,6 +24,8 @@ The guarded runtime-user provisioner has created and verified `scopethread_app` 
 
 The scoped `ScopeThreadBedrockDevelopment` inline policy is applied to `scopethread-dev` and verified against the repository policy with IAM simulation. It permits access only to the selected Bedrock models and the fixed `/scopethread/prod/database-url` parameter; unrelated parameters, deletion, Marketplace subscription, IAM mutation, and other models remain denied. The runtime connection is stored there as a Standard `SecureString`, and its version-one metadata is verified without decrypting or printing the value.
 
+At Lambda cold start, the runtime loader decrypts that fixed parameter once, requires the `scopethread_app` identity, `defaultdb`, a password, and `sslmode=verify-full`, then caches the repository. Parameter Store failures become a sanitized configuration error without exposing the SDK error or connection value.
+
 The guarded public E2E derives its endpoints from the deployed CloudFormation stack and verifies CloudFront security headers, API health, isolated session creation, live Bedrock conflict analysis, and CockroachDB revision persistence in one reproducible scenario. Running it remains an explicit paid live gate.
 
 Authenticated memory inspection is implemented locally. The browser reloads project-scoped items and links from CockroachDB, so active decisions, superseded decisions, source quotes, rationales, and revision chains survive a page reload instead of depending on temporary browser state.
