@@ -42,8 +42,42 @@ function languageInstruction(locale: "en" | "ja" | undefined): string {
     : "Write summary, content, rationale, explanation, confirmationQuestion, and nextQuestions in English. Keep sourceQuote exactly as written in the conversation.";
 }
 
+type ModelOutputIssue =
+  | "no_text"
+  | "invalid_json"
+  | "schema_mismatch"
+  | "unknown_evidence"
+  | "missing_evidence"
+  | "unlinked_conflict";
+
 export class ModelOutputError extends Error {
   override readonly name = "ModelOutputError";
+
+  constructor(
+    readonly issue: ModelOutputIssue,
+    message: string,
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+  }
+}
+
+function repairInstruction(issue: ModelOutputIssue): string {
+  const guidance: Record<ModelOutputIssue, string> = {
+    no_text:
+      "Return the complete JSON object. Do not return an empty response.",
+    invalid_json:
+      "Return syntactically valid JSON with double-quoted keys and strings, no trailing commas, no markdown, and no prose.",
+    schema_mismatch:
+      "Return every required field with exactly the documented key names, enum values, nullability, and array shapes.",
+    unknown_evidence:
+      "Use only evidence UUIDs copied exactly from retrievedMemories. Never invent or alter an evidence ID.",
+    missing_evidence:
+      "For every conflict, include its priorMemoryId unchanged in retrievedEvidenceIds.",
+    unlinked_conflict:
+      "For every conflict, copy conflict.newStatement exactly from one extracted memory content or sourceQuote. Do not paraphrase it.",
+  };
+  return `The previous generation failed validation. ${guidance[issue]} Regenerate the complete object from the supplied evidence.`;
 }
 
 function readResponseText(response: ConverseCommandOutput): string {
@@ -53,7 +87,10 @@ function readResponseText(response: ConverseCommandOutput): string {
     .filter((item): item is string => Boolean(item))
     .join("");
   if (!text) {
-    throw new ModelOutputError("Bedrock returned no text response.");
+    throw new ModelOutputError(
+      "no_text",
+      "Bedrock returned no text response.",
+    );
   }
   return text;
 }
@@ -108,7 +145,10 @@ function parseResponseJson(text: string): unknown {
       // Continue to the next bounded representation.
     }
   }
-  throw new ModelOutputError("Bedrock returned invalid JSON syntax.");
+  throw new ModelOutputError(
+    "invalid_json",
+    "Bedrock returned invalid JSON syntax.",
+  );
 }
 
 function assertGroundedResult(
@@ -118,6 +158,7 @@ function assertGroundedResult(
   for (const evidenceId of result.retrievedEvidenceIds) {
     if (!retrievedMemoryIds.has(evidenceId)) {
       throw new ModelOutputError(
+        "unknown_evidence",
         `Bedrock cited an unknown retrieved evidence ID: ${evidenceId}`,
       );
     }
@@ -126,11 +167,13 @@ function assertGroundedResult(
   for (const conflict of result.conflicts) {
     if (!retrievedMemoryIds.has(conflict.priorMemoryId)) {
       throw new ModelOutputError(
+        "unknown_evidence",
         `Bedrock cited an unknown prior memory ID: ${conflict.priorMemoryId}`,
       );
     }
     if (!result.retrievedEvidenceIds.includes(conflict.priorMemoryId)) {
       throw new ModelOutputError(
+        "missing_evidence",
         `Bedrock omitted conflict evidence from retrievedEvidenceIds: ${conflict.priorMemoryId}`,
       );
     }
@@ -142,6 +185,7 @@ function assertGroundedResult(
     );
     if (!hasLinkedNewMemory) {
       throw new ModelOutputError(
+        "unlinked_conflict",
         "Bedrock returned a conflict that cannot be linked to an extracted memory.",
       );
     }
@@ -158,6 +202,7 @@ export class BedrockConversationAnalyzer implements ConversationAnalyzer {
     const retrievedMemoryIds = new Set(
       context.retrievedMemories.map((memory) => memory.id),
     );
+    let repairIssue: ModelOutputIssue | null = null;
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const repairAttempt = attempt === 1;
@@ -169,9 +214,7 @@ export class BedrockConversationAnalyzer implements ConversationAnalyzer {
               text: [
                 systemPrompt,
                 languageInstruction(context.request.locale),
-                repairAttempt
-                  ? "The previous generation failed strict parsing or validation. Regenerate the complete object from the evidence and follow the schema exactly."
-                  : null,
+                repairIssue ? repairInstruction(repairIssue) : null,
               ]
                 .filter(Boolean)
                 .join("\n"),
@@ -210,16 +253,21 @@ export class BedrockConversationAnalyzer implements ConversationAnalyzer {
           error instanceof ModelOutputError
             ? error
             : new ModelOutputError(
+                "schema_mismatch",
                 "Bedrock returned JSON that did not match the required schema.",
                 { cause: error },
               );
         if (!repairAttempt) {
+          repairIssue = outputError.issue;
           continue;
         }
         throw outputError;
       }
     }
 
-    throw new ModelOutputError("Bedrock output validation failed.");
+    throw new ModelOutputError(
+      "schema_mismatch",
+      "Bedrock output validation failed.",
+    );
   }
 }

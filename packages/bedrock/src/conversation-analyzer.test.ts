@@ -147,11 +147,63 @@ describe("BedrockConversationAnalyzer", () => {
     const repairInput = send.mock.calls[1]?.[0]?.input;
     expect(repairInput.inferenceConfig.maxTokens).toBe(2400);
     expect(repairInput.system[0].text).toContain(
-      "The previous generation failed strict parsing or validation.",
+      "Return syntactically valid JSON with double-quoted keys and strings",
     );
     expect(JSON.parse(repairInput.messages[0].content[0].text)).toMatchObject({
       repairAttempt: true,
     });
+  });
+
+  it("repairs an unlinked conflict with exact-copy guidance", async () => {
+    const unlinked = modelResult({
+      conflicts: [
+        {
+          priorMemoryId,
+          newStatement: "A paraphrase that is not stored evidence.",
+          explanation: "Unlinkable conflict.",
+          confirmationQuestion: "Should this change?",
+        },
+      ],
+    });
+    const { analyzer, send } = analyzerForResponses([
+      JSON.stringify(unlinked),
+      JSON.stringify(modelResult()),
+    ]);
+
+    const result = await analyzer.analyze(context);
+
+    expect(result.conflicts[0]?.newStatement).toBe(newStatement);
+    expect(send.mock.calls[1]?.[0]?.input.system[0].text).toContain(
+      "copy conflict.newStatement exactly from one extracted memory content or sourceQuote",
+    );
+  });
+
+  it("repairs omitted conflict evidence with inclusion guidance", async () => {
+    const { analyzer, send } = analyzerForResponses([
+      JSON.stringify(modelResult({ retrievedEvidenceIds: [] })),
+      JSON.stringify(modelResult()),
+    ]);
+
+    await analyzer.analyze(context);
+
+    expect(send.mock.calls[1]?.[0]?.input.system[0].text).toContain(
+      "include its priorMemoryId unchanged in retrievedEvidenceIds",
+    );
+  });
+
+  it("repairs a schema mismatch with required-field guidance", async () => {
+    const invalidSchema = modelResult();
+    delete (invalidSchema as { summary?: string }).summary;
+    const { analyzer, send } = analyzerForResponses([
+      JSON.stringify(invalidSchema),
+      JSON.stringify(modelResult()),
+    ]);
+
+    await analyzer.analyze(context);
+
+    expect(send.mock.calls[1]?.[0]?.input.system[0].text).toContain(
+      "Return every required field with exactly the documented key names",
+    );
   });
 
   it("stops after one repair attempt when output remains invalid", async () => {
@@ -167,7 +219,7 @@ describe("BedrockConversationAnalyzer", () => {
   });
 
   it("rejects a conflict that cites memory outside retrieved evidence", async () => {
-    const { analyzer } = analyzerFor(
+    const { analyzer, send } = analyzerFor(
       modelResult({
         conflicts: [
           {
@@ -184,10 +236,15 @@ describe("BedrockConversationAnalyzer", () => {
     await expect(analyzer.analyze(context)).rejects.toThrow(
       "unknown retrieved evidence ID",
     );
+    const repairPrompt = send.mock.calls[1]?.[0]?.input.system[0].text;
+    expect(repairPrompt).toContain(
+      "Use only evidence UUIDs copied exactly from retrievedMemories",
+    );
+    expect(repairPrompt).not.toContain(unknownMemoryId);
   });
 
   it("rejects a conflict that cannot link to an extracted memory", async () => {
-    const { analyzer } = analyzerFor(
+    const { analyzer, send } = analyzerFor(
       modelResult({
         conflicts: [
           {
@@ -202,6 +259,9 @@ describe("BedrockConversationAnalyzer", () => {
 
     await expect(analyzer.analyze(context)).rejects.toThrow(
       "cannot be linked to an extracted memory",
+    );
+    expect(send.mock.calls[1]?.[0]?.input.system[0].text).toContain(
+      "copy conflict.newStatement exactly from one extracted memory content or sourceQuote",
     );
   });
 });
