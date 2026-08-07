@@ -3,9 +3,9 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const TEST_TIMELINE = {
-  mcpMs: 2_000,
-  architectureMs: 4_000,
-  stopMs: 8_000,
+  mcpMs: 20_000,
+  architectureMs: 23_000,
+  stopMs: 26_000,
 };
 
 const FINAL_TIMELINE = {
