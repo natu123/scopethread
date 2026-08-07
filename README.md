@@ -28,13 +28,13 @@ The scoped `ScopeThreadBedrockDevelopment` inline policy is applied to `scopethr
 
 At Lambda cold start, the runtime loader decrypts that fixed parameter once, requires the `scopethread_app` identity, `defaultdb`, a password, and `sslmode=verify-full`, then caches the repository. Parameter Store failures become a sanitized configuration error without exposing the SDK error or connection value.
 
-The guarded public E2E derives its endpoints from the deployed CloudFormation stack and verifies CloudFront security headers, API health, isolated session creation, live Bedrock conflict analysis, and CockroachDB revision persistence in one reproducible scenario. Its first paid run on 2026-08-07 verified the public infrastructure and session-memory bootstrap but stopped at `/analyze` with the safe `MODEL_OUTPUT_INVALID` category. Cause-specific Nova repair guidance was then deployed, but the second paid run stopped at the same category. A third run with allowlisted telemetry identified `MODEL_OUTPUT_UNLINKED_CONFLICT` without storing generated content. A deterministic host-side link for a single conversation-grounded memory is now locally verified and awaits deployment.
+The guarded public E2E derives its endpoints from the deployed CloudFormation stack and verifies CloudFront security headers, API health, isolated session creation, live Bedrock conflict analysis, and CockroachDB revision persistence in one reproducible scenario. Its first paid run on 2026-08-07 verified the public infrastructure and session-memory bootstrap but stopped at `/analyze` with the safe `MODEL_OUTPUT_INVALID` category. Cause-specific Nova repair guidance was then deployed, but the second paid run stopped at the same category. A third run with allowlisted telemetry identified `MODEL_OUTPUT_UNLINKED_CONFLICT` without storing generated content. After deploying the deterministic host-side link and conflict-state normalization, the complete public E2E succeeded and persisted a verified revision chain.
 
 Authenticated memory inspection is implemented locally. The browser reloads project-scoped items and links from CockroachDB, so active decisions, superseded decisions, source quotes, rationales, and revision chains survive a page reload instead of depending on temporary browser state.
 
 False-positive conflict dismissal is implemented locally. A dismissal records its reason on the proposed memory while leaving the prior active decision unchanged, and the persisted dismissal remains visible after a page reload.
 
-The CockroachDB Cloud Managed MCP connection is verified live as a single-cluster, OAuth, read-only workflow. Allowlisted queries verified the vector index, a succeeded Cohere agent run, and its fictional persisted decision without reading embeddings or session-token data. The final public Nova run and `supersedes` decision chain remain pending.
+The CockroachDB Cloud Managed MCP connection is verified live as a single-cluster, OAuth, read-only workflow. Allowlisted queries verified the vector index, a succeeded Cohere agent run, and its fictional persisted decision without reading embeddings or session-token data. The public Nova revision chain is now verified through the application and direct read-only SQL; the final Managed MCP query for that same run remains pending.
 
 ## Design Documents
 
@@ -172,7 +172,7 @@ The planned hackathon integrations are:
 | --- | --- | --- |
 | CockroachDB Distributed Vector Indexing | Retrieve semantically related conversations and decisions. | Live embedding retrieval verified. |
 | CockroachDB Cloud Managed MCP Server | Provide controlled agent access to project memory. | Single-cluster OAuth and preliminary read-only audit verified live; final revision-chain audit pending. |
-| Amazon Bedrock | Extract, reason over, and respond with project context. | Live Cohere retrieval and direct Nova agent-memory E2E verified; public telemetry identified an unlinked conflict, and the deterministic host-side fix awaits deployment. |
+| Amazon Bedrock | Extract, reason over, and respond with project context. | Live Cohere retrieval, direct Nova agent-memory E2E, and the complete public conflict-and-revision workflow are verified. |
 | AWS Lambda | Run the serverless agent workflow. | Stack, API health, SSM runtime configuration, and CockroachDB session-memory smoke path verified live. |
 
 ## Memory Model
@@ -200,8 +200,8 @@ Structured records remain authoritative. Vector similarity is used to find conte
 - [x] Add conflict detection and next-question generation.
 - [x] Restore persisted project memory and revision history after page reload.
 - [x] Dismiss false-positive conflicts without replacing active decisions.
-- [ ] Deploy the functional demo on AWS.
-- [ ] Verify security, observability, and failure handling.
+- [x] Deploy the functional demo on AWS.
+- [x] Verify security, observability, and failure handling.
 - [ ] Record a public demo video under three minutes.
 - [ ] Complete the Devpost project story and submission checklist.
 

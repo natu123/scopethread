@@ -85,7 +85,7 @@ The allowlisted MCP tools verified:
 - its fictional active decision, rationale, and source quote are persisted;
 - the query excludes the embedding value, demo sessions, token hashes, and credentials.
 
-The preliminary run has no `supersedes` link because it predates a successful public Nova conflict-and-revision flow. Do not present this preliminary result as the final decision-chain audit. Repeat the full procedure below with the public application run ID after the repaired public E2E succeeds.
+The preliminary run has no `supersedes` link because it predates the successful public Nova conflict-and-revision flow. Do not present this preliminary result as the final decision-chain audit. Repeat the full procedure below with successful public agent run `738cf3ad-8bd4-4c3f-ba31-9330e4792a36`.
 
 ## Live Audit Procedure
 

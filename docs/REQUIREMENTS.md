@@ -1,6 +1,6 @@
 # ScopeThread MVP Requirements
 
-Status: Public AWS application, demo-session bootstrap, direct paid Nova flow, and public failure diagnosis verified; deterministic conflict-link deployment and revision flow pending
+Status: Public AWS application, demo-session bootstrap, direct and public paid Nova flows, failure diagnosis, and revision persistence verified; public repository, final Managed MCP revision audit, and video pending
 
 ## Product Goal
 
