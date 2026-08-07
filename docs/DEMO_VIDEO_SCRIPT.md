@@ -11,6 +11,11 @@ Do not reuse the pre-audit diagnostic capture because one tool output displayed 
 ## Capture setup
 
 - Use a 1920 x 1080 canvas and record the browser content area at 100% zoom.
+- In OBS Studio, use a 1920 x 1080 base and output canvas at 30 frames per second.
+- Record to MKV so an interrupted take remains recoverable, then use OBS **File > Remux Recordings** to create the upload-ready MP4.
+- Use application-window capture sources rather than full-display capture. This keeps unrelated tabs, notifications, account details, and the pre-audit diagnostic output outside the recording surface.
+- Prepare three scenes before recording: **Public demo**, **Managed MCP evidence**, and **Architecture close**.
+- Disable desktop audio unless the demo intentionally uses it. Record the narration microphone on its own audio source and make a ten-second level test before the final take.
 - Use the English interface for the main workflow, then show the Japanese switch briefly.
 - Prepare the public demo, the read-only MCP result, and one architecture image or document before recording.
 - Reset the demo to the known fictional booking scenario before the take.
