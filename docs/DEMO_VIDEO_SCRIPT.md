@@ -4,7 +4,9 @@ Target duration: 2 minutes 40 seconds. The final upload must be public on YouTub
 
 ## Recording gate
 
-Do not record the final take until the Managed MCP query in `MCP_AUDIT_RUNBOOK.md` has returned the successful public run and its revision chain. Use only fictional client content. Keep browser developer tools, address-bar query strings, AWS account details, CockroachDB cluster details, terminal environment variables, and authentication screens out of frame.
+The Managed MCP gate was satisfied on 2026-08-07: the allowlisted audit in `MCP_AUDIT_RUNBOOK.md` returned the successful public run, its revision chain, and the vector index through the single-cluster read-only connection. Use only fictional client content. Keep browser developer tools, address-bar query strings, AWS account details, CockroachDB cluster details, terminal environment variables, and authentication screens out of frame.
+
+Do not reuse the pre-audit diagnostic capture because one tool output displayed the cluster ID. Use only the final allowlisted query results, cropped to the documented columns. The diagnostic contained no credential or OAuth token, but it is not approved recording material.
 
 ## Capture setup
 
@@ -13,6 +15,7 @@ Do not record the final take until the Managed MCP query in `MCP_AUDIT_RUNBOOK.m
 - Prepare the public demo, the read-only MCP result, and one architecture image or document before recording.
 - Reset the demo to the known fictional booking scenario before the take.
 - Crop the MCP result to the allowlisted columns documented in `MCP_AUDIT_RUNBOOK.md`.
+- For the MCP scene, show the succeeded run, `superseded` and `active` decision states, the `supersedes` relation, and `memory_items_embedding_idx`; do not show configuration or discovery output.
 - Do not display account IDs, cluster IDs, database URLs, OAuth screens, bearer tokens, passwords, request headers, or real client data.
 
 ## Timed storyboard and narration
@@ -82,3 +85,4 @@ Do not record the final take until the Managed MCP query in `MCP_AUDIT_RUNBOOK.m
 - Confirm no identifiers, credentials, tokens, URLs with secrets, or real client data appear in video or audio.
 - Confirm narration matches the behavior visible in the final deployed application.
 - Upload publicly to YouTube or Vimeo, test the URL in a signed-out window, and replace `[VIDEO_DEMO_URL]` in `DEVPOST_DRAFT.md`.
+- After the approved recording is complete, disconnect or revoke the Managed MCP OAuth session as required by `MCP_AUDIT_RUNBOOK.md`.
