@@ -46,29 +46,29 @@
   </g>
 
   <g filter="url(#shadow)">
-    <rect x="1170" y="345" width="650" height="400" rx="28" fill="#3f5648"/>
-    <text x="1222" y="414" fill="#dce7de" font-family="Inter, Segoe UI, sans-serif" font-size="19" font-weight="750" letter-spacing="2.5">DURABLE MEMORY LAYER</text>
-    <text x="1222" y="472" fill="#ffffff" font-family="Georgia, Times New Roman, serif" font-size="43">CockroachDB Cloud</text>
-    <line x1="1222" y1="507" x2="1768" y2="507" stroke="#70877a" stroke-width="2"/>
+    <rect x="1170" y="345" width="650" height="362" rx="28" fill="#3f5648"/>
+    <text x="1222" y="395" fill="#dce7de" font-family="Inter, Segoe UI, sans-serif" font-size="19" font-weight="750" letter-spacing="2.5">DURABLE MEMORY LAYER</text>
+    <text x="1222" y="453" fill="#ffffff" font-family="Georgia, Times New Roman, serif" font-size="43">CockroachDB Cloud</text>
+    <line x1="1222" y1="488" x2="1768" y2="488" stroke="#70877a" stroke-width="2"/>
 
     <g font-family="Inter, Segoe UI, sans-serif">
-      <rect x="1222" y="546" width="245" height="65" rx="14" fill="#526b5a"/>
-      <text x="1248" y="587" fill="#ffffff" font-size="18" font-weight="700">Evidence + source quotes</text>
-      <rect x="1490" y="546" width="278" height="65" rx="14" fill="#526b5a"/>
-      <text x="1518" y="587" fill="#ffffff" font-size="21" font-weight="700">Active decision state</text>
-      <rect x="1222" y="630" width="245" height="65" rx="14" fill="#526b5a"/>
-      <text x="1250" y="671" fill="#ffffff" font-size="21" font-weight="700">Vector index</text>
-      <rect x="1490" y="630" width="278" height="65" rx="14" fill="#526b5a"/>
-      <text x="1518" y="671" fill="#ffffff" font-size="21" font-weight="700">Supersedes links</text>
+      <rect x="1222" y="527" width="245" height="65" rx="14" fill="#526b5a"/>
+      <text x="1248" y="568" fill="#ffffff" font-size="18" font-weight="700">Evidence + source quotes</text>
+      <rect x="1490" y="527" width="278" height="65" rx="14" fill="#526b5a"/>
+      <text x="1518" y="568" fill="#ffffff" font-size="21" font-weight="700">Active decision state</text>
+      <rect x="1222" y="611" width="245" height="65" rx="14" fill="#526b5a"/>
+      <text x="1250" y="652" fill="#ffffff" font-size="21" font-weight="700">Vector index</text>
+      <rect x="1490" y="611" width="278" height="65" rx="14" fill="#526b5a"/>
+      <text x="1518" y="652" fill="#ffffff" font-size="21" font-weight="700">Supersedes links</text>
     </g>
   </g>
 
-  <path d="M406 526 H520" fill="none" stroke="#3f5648" stroke-width="5" marker-end="url(#arrow-green)"/>
-  <rect x="424" y="474" width="78" height="34" rx="17" fill="#f3f1ea"/>
-  <text x="463" y="491" dominant-baseline="middle" text-anchor="middle" fill="#526658" font-family="Inter, Segoe UI, sans-serif" font-size="16" font-weight="700">HTTPS</text>
-  <path d="M1034 526 H1148" fill="none" stroke="#3f5648" stroke-width="5" marker-end="url(#arrow-green)"/>
-  <rect x="1031" y="474" width="120" height="34" rx="17" fill="#f3f1ea"/>
-  <text x="1091" y="491" dominant-baseline="middle" text-anchor="middle" fill="#526658" font-family="Inter, Segoe UI, sans-serif" font-size="15" font-weight="700">READ + WRITE</text>
+  <path d="M418 526 H530" fill="none" stroke="#3f5648" stroke-width="5" marker-end="url(#arrow-green)"/>
+  <rect x="438" y="484" width="72" height="32" rx="16" fill="#f3f1ea"/>
+  <text x="474" y="500" dominant-baseline="middle" text-anchor="middle" fill="#526658" font-family="Inter, Segoe UI, sans-serif" font-size="14" font-weight="700">HTTPS</text>
+  <path d="M1046 526 H1158" fill="none" stroke="#3f5648" stroke-width="5" marker-end="url(#arrow-green)"/>
+  <rect x="1044" y="484" width="116" height="32" rx="16" fill="#f3f1ea"/>
+  <text x="1102" y="500" dominant-baseline="middle" text-anchor="middle" fill="#526658" font-family="Inter, Segoe UI, sans-serif" font-size="14" font-weight="700">READ + WRITE</text>
 
   <g filter="url(#shadow)">
     <rect x="542" y="790" width="492" height="174" rx="24" fill="#faf8f2" stroke="#c9c2b5" stroke-width="2"/>
@@ -78,9 +78,9 @@
     <text x="572" y="932" fill="#595b55" font-family="Inter, Segoe UI, sans-serif" font-size="19">OAuth · single cluster · allowlisted queries</text>
   </g>
 
-  <path d="M1034 877 H1462 V768" fill="none" stroke="#8b6f47" stroke-width="5" marker-end="url(#arrow-brown)"/>
-  <rect x="1100" y="826" width="260" height="34" rx="17" fill="#f3f1ea"/>
-  <text x="1230" y="843" dominant-baseline="middle" text-anchor="middle" fill="#725d3e" font-family="Inter, Segoe UI, sans-serif" font-size="16" font-weight="700">AUDITS THE SAME MEMORY</text>
+  <path d="M1046 877 H1495 V730" fill="none" stroke="#8b6f47" stroke-width="5" marker-end="url(#arrow-brown)"/>
+  <rect x="1145" y="828" width="252" height="32" rx="16" fill="#f3f1ea"/>
+  <text x="1271" y="844" dominant-baseline="middle" text-anchor="middle" fill="#725d3e" font-family="Inter, Segoe UI, sans-serif" font-size="14" font-weight="700">AUDITS THE SAME MEMORY</text>
 
   <text x="96" y="1018" fill="#71736c" font-family="Inter, Segoe UI, sans-serif" font-size="20">Structured truth decides what is current. Vector retrieval reconnects new evidence with the decisions that came before.</text>
 </svg>
