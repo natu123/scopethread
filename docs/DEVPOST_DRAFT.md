@@ -59,7 +59,7 @@ The public-demo design uses short-lived bearer tokens. Only SHA-256 token hashes
 
 The AWS infrastructure is defined with SAM. It includes Lambda, an HTTP API, a private S3 origin, CloudFront, scoped Bedrock and Parameter Store access, API throttling, a 16 KiB request-body guard, 14-day log retention, and browser security headers. Secret-bearing operations and paid live tests use explicit `--apply` gates and refuse root credentials.
 
-The CockroachDB Cloud Managed MCP Server is designed as a separate read-only operator path. Its final demo will use OAuth, one-cluster scoping, read-only authorization, and allowlisted audit queries to inspect the same decision history created by the AWS application.
+The CockroachDB Cloud Managed MCP Server provides a separate read-only operator path. The verified workflow uses OAuth, one-cluster scoping, read-only authorization, and allowlisted audit queries to inspect the same decision history created by the AWS application.
 
 ### Challenges we faced
 
@@ -108,7 +108,6 @@ The Cohere embedding path required accepting the third-party model agreement bef
 
 ### What's next
 
-- Repeat the read-only CockroachDB Cloud Managed MCP audit with the public Nova run and verify its revision chain.
 - Record the final video and replace all submission placeholders.
 
 ## Built with
@@ -164,6 +163,7 @@ The final English narration, on-screen actions, recording gate, and redaction re
 - [x] Verify Nova live inference from `scopethread-dev`.
 - [x] Verify the live public E2E succeeds from the deployed stack.
 - [x] Verify the MCP OAuth connection is single-cluster and read-only.
+- [x] Verify the final Managed MCP audit returns the successful public run, revision chain, and vector index without write operations or unexpected data exposure.
 - [ ] Confirm the video contains no account IDs, cluster IDs, tokens, credentials, or real client data.
 - [ ] Complete every final-take review item in `DEMO_VIDEO_SCRIPT.md`.
 - [ ] Confirm every accomplishment above has current evidence.

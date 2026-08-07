@@ -100,7 +100,7 @@ The allowlisted MCP tools verified:
 
 The preliminary run has no `supersedes` link because it predates the successful public Nova conflict-and-revision flow. Do not present this preliminary result as the final decision-chain audit. Repeat the full procedure below with successful public agent run `738cf3ad-8bd4-4c3f-ba31-9330e4792a36`.
 
-On 2026-08-07, a final-audit discovery attempt reached the configured `cockroachdb-cloud` server but stopped before any query because its OAuth refresh token returned `invalid_grant`. Reauthenticate with the same single-cluster, read-only boundary before repeating the final audit.
+On 2026-08-07, an initial final-audit discovery attempt reached the configured `cockroachdb-cloud` server but stopped before any query because its OAuth refresh token returned `invalid_grant`. A newly scoped OAuth connection restored the same single-cluster, read-only boundary, and the final audit then completed successfully as recorded below.
 
 ## Live Audit Procedure
 
@@ -224,18 +224,28 @@ Expected evidence:
 
 ## Completion Record
 
-Record the following after the live audit without adding credentials or full query results:
+Final audit completed on 2026-08-07 using only fictional demo data:
 
 ```text
-Date:
+Date: 2026-08-07
 Cluster scope: single cluster
 Authentication: OAuth
-Authorization: read only
-Agent run verified: yes/no
-Decision chain verified: yes/no
-Vector index verified: yes/no
-Unexpected data exposure: yes/no
+Authorization: read only (based on the authorization-screen selection; the token was not inspected)
+Agent run verified: yes
+Decision chain verified: yes
+Vector index verified: yes
+Unexpected database data exposure: no
 ```
+
+Verified evidence:
+
+- agent run `738cf3ad-8bd4-4c3f-ba31-9330e4792a36` has status `succeeded`, chat model `global.amazon.nova-2-lite-v1:0`, embedding model `cohere.embed-multilingual-v3`, and a null error code;
+- the prior decision has `superseded` status and the replacement has `active` status;
+- the `supersedes` link preserves the reason `The client approved online booking after revising the launch scope.`;
+- `memory_items_embedding_idx` contains `project_id`, `embedding`, and the implicit `id` column;
+- the audit used three `select_query` calls and one `show_statement` call, with no writes or additional discovery.
+
+A pre-audit diagnostic tool output displayed the cluster ID once. It contained no credential or OAuth token, but it must not be used in the recording. The allowlisted database queries exposed no unexpected data. The OAuth connection remains active until recording is complete, after which the disconnect procedure below is required.
 
 ## Disconnect
 

@@ -1,6 +1,6 @@
 # ScopeThread MVP Architecture
 
-Status: AWS application, public Nova conflict-and-revision workflow, demo-session persistence, and preliminary read-only MCP audit verified live; final Managed MCP revision audit pending
+Status: AWS application, public Nova conflict-and-revision workflow, demo-session persistence, and final single-cluster read-only Managed MCP revision audit verified live
 
 ## Decision Summary
 
@@ -205,7 +205,7 @@ scopethread/
 - The CockroachDB Cloud connection, migrations, structured demo memory, and vector index are verified.
 - Live Cohere embedding inference and the direct Nova agent-memory E2E are verified through `scopethread-dev`. AWS approved and activated the global Nova 2 Lite inference profile on 2026-08-07; Tokens per day scales automatically with Tokens per minute.
 - The one-time AWS deployment bootstrap, application stack, static web application, and single-cluster CockroachDB Cloud Managed MCP connection are live.
-- Managed MCP OAuth was authorized for read access only. Allowlisted queries verified the project-prefixed vector index, the latest succeeded Cohere run, and its fictional persisted decision without requesting embeddings or demo-session data. The successful public Nova chain is verified through direct read-only SQL and awaits the same final Managed MCP audit.
+- Managed MCP OAuth was authorized for read access only. Three allowlisted `select_query` calls and one `show_statement` call verified successful public Nova run `738cf3ad-8bd4-4c3f-ba31-9330e4792a36`, its superseded prior decision, active replacement, `supersedes` relation and reason, and `memory_items_embedding_idx` without requesting embeddings, demo-session data, credentials, unrelated tables, or write tools.
 - The first paid public E2E verified CloudFront security headers, API health, isolated session creation, and CockroachDB bootstrap, then failed safely at analysis with `MODEL_OUTPUT_INVALID`. Cause-specific repair guidance was deployed, but the second paid run stopped at the same safe category. A third run with allowlisted telemetry identified `MODEL_OUTPUT_UNLINKED_CONFLICT`. The host fix deterministically links a conflict when exactly one extracted memory has a source quote copied from the conversation; ambiguous multi-memory cases remain rejected. Linked conflict candidates are normalized to `proposed` until the explicit revision or dismissal transition. The deployed fix completed the public E2E, and read-only SQL verified the persisted `supersedes` chain.
 - Public demo-session controls pass local API, database, SAM, and browser E2E verification. Migration `0002_demo_session_access.sql` is applied and its columns and token index are verified on the live cluster.
 - Migration `0003_runtime_role.sql` is applied on the live cluster. The `scopethread_runtime` role is verified as `NOLOGIN`, its six-table grant set matches the least-privilege design, and the built-in `public` role no longer has public-schema `CREATE`.

@@ -34,7 +34,7 @@ Authenticated memory inspection is implemented locally. The browser reloads proj
 
 False-positive conflict dismissal is implemented locally. A dismissal records its reason on the proposed memory while leaving the prior active decision unchanged, and the persisted dismissal remains visible after a page reload.
 
-The CockroachDB Cloud Managed MCP connection is verified live as a single-cluster, OAuth, read-only workflow. Allowlisted queries verified the vector index, a succeeded Cohere agent run, and its fictional persisted decision without reading embeddings or session-token data. The public Nova revision chain is now verified through the application and direct read-only SQL; the final Managed MCP query for that same run remains pending.
+The CockroachDB Cloud Managed MCP connection is verified live as a single-cluster, OAuth, read-only workflow. Three allowlisted `select_query` calls and one `show_statement` call verified the successful public Nova run, its superseded and active decisions, the `supersedes` revision link, and the project-prefixed vector index without reading embeddings, session-token data, credentials, or unrelated tables.
 
 ## Design Documents
 
@@ -171,7 +171,7 @@ The planned hackathon integrations are:
 | Technology | Planned role | Status |
 | --- | --- | --- |
 | CockroachDB Distributed Vector Indexing | Retrieve semantically related conversations and decisions. | Live embedding retrieval verified. |
-| CockroachDB Cloud Managed MCP Server | Provide controlled agent access to project memory. | Single-cluster OAuth and preliminary read-only audit verified live; final revision-chain audit pending. |
+| CockroachDB Cloud Managed MCP Server | Provide controlled agent access to project memory. | Single-cluster OAuth and final read-only revision-chain audit verified live. |
 | Amazon Bedrock | Extract, reason over, and respond with project context. | Live Cohere retrieval, direct Nova agent-memory E2E, and the complete public conflict-and-revision workflow are verified. |
 | AWS Lambda | Run the serverless agent workflow. | Stack, API health, SSM runtime configuration, and CockroachDB session-memory smoke path verified live. |
 
