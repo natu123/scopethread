@@ -19,6 +19,6 @@ export default defineConfig({
     coverage: {
       reporter: ["text", "html"],
     },
-    include: ["apps/**/*.test.ts", "packages/**/*.test.ts"],
+    include: ["apps/**/*.test.ts", "packages/**/*.test.ts", "scripts/**/*.test.ts"],
   },
 });

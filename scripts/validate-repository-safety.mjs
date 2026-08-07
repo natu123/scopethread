@@ -2,12 +2,12 @@ import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
 
+import {
+  findForbiddenContent,
+  isForbiddenSecretPath,
+} from "./repository-safety-rules.mjs";
+
 const repositoryUrl = new URL("..", import.meta.url);
-const forbiddenTrackedFiles = new Set([
-  ".env",
-  ".env.local",
-  ".env.runtime.local",
-]);
 const textExtensions = new Set([
   "",
   ".css",
@@ -25,29 +25,6 @@ const textExtensions = new Set([
   ".yaml",
   ".yml",
 ]);
-const forbiddenContent = [
-  {
-    name: "AWS access key",
-    pattern: /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/,
-  },
-  {
-    name: "private key",
-    pattern: /-----BEGIN (?:EC |OPENSSH |RSA )?PRIVATE KEY-----/,
-  },
-  {
-    name: "credential-bearing PostgreSQL URL",
-    pattern: /postgres(?:ql)?:\/\/[^:\s/@]+:[^@\s/]+@/i,
-  },
-  {
-    name: "AWS account ID in an ARN",
-    pattern: /\barn:aws[a-z-]*:[^:\s]*:[^:\s]*:\d{12}:/,
-  },
-  {
-    name: "labeled AWS account ID",
-    pattern: /\bAWS\s+account\s+ID\D{0,20}\d{12}\b/i,
-  },
-];
-
 const trackedOutput = execFileSync("git", ["ls-files", "-z"], {
   cwd: repositoryUrl,
   encoding: "utf8",
@@ -55,17 +32,15 @@ const trackedOutput = execFileSync("git", ["ls-files", "-z"], {
 const trackedFiles = trackedOutput.split("\0").filter(Boolean);
 
 for (const path of trackedFiles) {
-  if (forbiddenTrackedFiles.has(path)) {
+  if (isForbiddenSecretPath(path)) {
     throw new Error(`Local secret file must not be tracked: ${path}`);
   }
   if (!textExtensions.has(extname(path).toLowerCase())) {
     continue;
   }
   const content = await readFile(new URL(path.replaceAll("\\", "/"), repositoryUrl), "utf8");
-  for (const rule of forbiddenContent) {
-    if (rule.pattern.test(content)) {
-      throw new Error(`Tracked ${rule.name} detected in ${path}.`);
-    }
+  for (const rule of findForbiddenContent(content)) {
+    throw new Error(`Tracked ${rule} detected in ${path}.`);
   }
 }
 
