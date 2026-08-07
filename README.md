@@ -28,7 +28,7 @@ The scoped `ScopeThreadBedrockDevelopment` inline policy is applied to `scopethr
 
 At Lambda cold start, the runtime loader decrypts that fixed parameter once, requires the `scopethread_app` identity, `defaultdb`, a password, and `sslmode=verify-full`, then caches the repository. Parameter Store failures become a sanitized configuration error without exposing the SDK error or connection value.
 
-The guarded public E2E derives its endpoints from the deployed CloudFormation stack and verifies CloudFront security headers, API health, isolated session creation, live Bedrock conflict analysis, and CockroachDB revision persistence in one reproducible scenario. Its first paid run on 2026-08-07 verified the public infrastructure and session-memory bootstrap but stopped at `/analyze` with the safe `MODEL_OUTPUT_INVALID` category. Cause-specific Nova repair guidance is implemented and locally verified, but the public E2E must be repeated after that repair is deployed.
+The guarded public E2E derives its endpoints from the deployed CloudFormation stack and verifies CloudFront security headers, API health, isolated session creation, live Bedrock conflict analysis, and CockroachDB revision persistence in one reproducible scenario. Its first paid run on 2026-08-07 verified the public infrastructure and session-memory bootstrap but stopped at `/analyze` with the safe `MODEL_OUTPUT_INVALID` category. Cause-specific Nova repair guidance was then deployed, but the second paid run stopped at the same safe category. Allowlisted output-issue telemetry is now locally verified so the next explicitly approved deployment and run can distinguish syntax, schema, evidence, and conflict-link failures without storing generated content.
 
 Authenticated memory inspection is implemented locally. The browser reloads project-scoped items and links from CockroachDB, so active decisions, superseded decisions, source quotes, rationales, and revision chains survive a page reload instead of depending on temporary browser state.
 
@@ -172,7 +172,7 @@ The planned hackathon integrations are:
 | --- | --- | --- |
 | CockroachDB Distributed Vector Indexing | Retrieve semantically related conversations and decisions. | Live embedding retrieval verified. |
 | CockroachDB Cloud Managed MCP Server | Provide controlled agent access to project memory. | Single-cluster OAuth and preliminary read-only audit verified live; final revision-chain audit pending. |
-| Amazon Bedrock | Extract, reason over, and respond with project context. | Live Cohere retrieval and direct Nova agent-memory E2E verified; repaired public Nova gate pending redeployment. |
+| Amazon Bedrock | Extract, reason over, and respond with project context. | Live Cohere retrieval and direct Nova agent-memory E2E verified; the deployed repair still fails the public Nova gate, and safe issue telemetry awaits deployment. |
 | AWS Lambda | Run the serverless agent workflow. | Stack, API health, SSM runtime configuration, and CockroachDB session-memory smoke path verified live. |
 
 ## Memory Model
