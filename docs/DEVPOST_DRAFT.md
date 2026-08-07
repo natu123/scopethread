@@ -85,7 +85,7 @@ The first deployment bootstrap reached the IAM user's aggregate inline-policy si
 
 #### External model activation
 
-The Cohere embedding path required accepting the third-party model agreement before live inference. Amazon Nova live verification also depends on the AWS account's available model quota. AWS Support confirmed that the Singapore request is under review and that Tokens per day scales automatically with an approved Tokens per minute increase. The repository keeps this external account state separate from code-level completion and does not claim live verification before it succeeds.
+The Cohere embedding path required accepting the third-party model agreement before live inference. Nova 2 Lite initially returned zero-quota throttling, so we kept account activation separate from code completion and requested review through AWS Support. AWS approved the global cross-region inference profile on 2026-08-07, and the direct agent-memory E2E then completed live conflict detection and transactional memory persistence. The first public E2E exposed a different issue: generated output could still fail strict schema or grounding validation. ScopeThread rejected that output without partial memory, and we added bounded, cause-specific repair guidance without sending raw model output back into the repair prompt.
 
 ### What we learned
 
@@ -108,8 +108,8 @@ The Cohere embedding path required accepting the third-party model agreement bef
 
 ### What's next
 
-- Complete the live Amazon Nova quota gate.
-- Run the guarded public demo E2E from the CloudFront URL.
+- Deploy the cause-specific Nova repair guidance.
+- Re-run the guarded public demo E2E from the CloudFront URL.
 - Repeat the read-only CockroachDB Cloud Managed MCP audit with the public Nova run and verify its revision chain.
 - Record the final video and replace all submission placeholders.
 
@@ -160,7 +160,7 @@ Target duration: 2 minutes 40 seconds.
 
 - [x] Confirm the public demo link uses the verified CloudFront URL.
 - [ ] Replace `[VIDEO_DEMO_URL]` with the public video URL.
-- [ ] Verify Nova live inference from `scopethread-dev`.
+- [x] Verify Nova live inference from `scopethread-dev`.
 - [ ] Verify the live public E2E succeeds from the deployed stack.
 - [x] Verify the MCP OAuth connection is single-cluster and read-only.
 - [ ] Confirm the video contains no account IDs, cluster IDs, tokens, credentials, or real client data.

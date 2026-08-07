@@ -12,7 +12,7 @@ This runbook keeps ScopeThread development off the AWS account root user and avo
 - Development policy: `infra/iam/scopethread-bedrock-development-policy.json`.
 - Applied inline policy: `ScopeThreadBedrockDevelopment`, structurally matched and IAM-simulated on 2026-08-06.
 - Deployment bootstrap: `scopethread-bootstrap` reached `CREATE_COMPLETE` on 2026-08-06.
-- Nova quota review: AWS Support confirmed that the `ap-southeast-1` request is under review, typically for three to five business days. Tokens per day is not directly adjustable and scales automatically when Tokens per minute is increased.
+- Nova quota: AWS Support approved and activated `global.amazon.nova-2-lite-v1:0` on 2026-08-07. Tokens per day scales automatically with Tokens per minute and requires no separate request.
 
 ## One-Time Console Setup
 
@@ -69,6 +69,8 @@ npm run e2e:agent-memory -- --apply
 This command uses the production analysis workflow. It creates a query embedding, retrieves the seeded booking decision from CockroachDB, asks Amazon Nova to analyze a conflicting request, embeds the extracted memories, and persists the new conversation and conflict link in one transaction. It verifies that the prior decision remains intact. Repeating the command uses the same idempotency key and does not create a duplicate conversation.
 
 The command performs paid on-demand Bedrock calls and refuses root or any AWS identity other than `scopethread-dev`.
+
+Live status: this gate succeeded on 2026-08-07 with one retrieved evidence record, one grounded conflict, and two transactionally persisted embedded memories.
 
 ## End the Session
 

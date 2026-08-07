@@ -8,7 +8,7 @@ The public interface is English-first for hackathon review and includes a persis
 
 ## Status
 
-ScopeThread has a verified application scaffold for the web interface, Lambda API, core domain workflow, Bedrock adapters, CockroachDB vector queries, database migration, and AWS SAM infrastructure. The CockroachDB Cloud connection, migration, vector index, fictional demo memory, live Cohere embedding retrieval, one-time deployment bootstrap, AWS application stack, and [public CloudFront application](https://d2kn7tl59k7usc.cloudfront.net/) have been verified in Singapore. The deployed API health, a no-Bedrock session-to-memory smoke path, the public browser session, the English/Japanese interface and locale-aware API contract, and a single-cluster read-only Managed MCP connection pass against the live system. Nova 2 Lite live inference is waiting for AWS to complete its `ap-southeast-1` quota review; AWS stated that increasing Tokens per minute will automatically scale Tokens per day.
+ScopeThread has a verified application scaffold for the web interface, Lambda API, core domain workflow, Bedrock adapters, CockroachDB vector queries, database migration, and AWS SAM infrastructure. The CockroachDB Cloud connection, migration, vector index, fictional demo memory, live Cohere embedding retrieval, one-time deployment bootstrap, AWS application stack, and [public CloudFront application](https://d2kn7tl59k7usc.cloudfront.net/) have been verified in Singapore. The deployed API health, a no-Bedrock session-to-memory smoke path, the public browser session, the English/Japanese interface and locale-aware API contract, and a single-cluster read-only Managed MCP connection pass against the live system. AWS approved the Nova 2 Lite quota request on 2026-08-07, and the guarded direct agent-memory E2E subsequently verified live Nova conflict detection, vector retrieval, and transactional CockroachDB persistence.
 
 Agent-run observability is implemented locally. Every valid analysis receives a durable run ID, model identifiers, status, duration, and a safe error category. Successful memory writes and the run's `succeeded` transition share one CockroachDB transaction; failed model calls do not create partial memory.
 
@@ -28,7 +28,7 @@ The scoped `ScopeThreadBedrockDevelopment` inline policy is applied to `scopethr
 
 At Lambda cold start, the runtime loader decrypts that fixed parameter once, requires the `scopethread_app` identity, `defaultdb`, a password, and `sslmode=verify-full`, then caches the repository. Parameter Store failures become a sanitized configuration error without exposing the SDK error or connection value.
 
-The guarded public E2E derives its endpoints from the deployed CloudFormation stack and verifies CloudFront security headers, API health, isolated session creation, live Bedrock conflict analysis, and CockroachDB revision persistence in one reproducible scenario. Running it remains an explicit paid live gate.
+The guarded public E2E derives its endpoints from the deployed CloudFormation stack and verifies CloudFront security headers, API health, isolated session creation, live Bedrock conflict analysis, and CockroachDB revision persistence in one reproducible scenario. Its first paid run on 2026-08-07 verified the public infrastructure and session-memory bootstrap but stopped at `/analyze` with the safe `MODEL_OUTPUT_INVALID` category. Cause-specific Nova repair guidance is implemented and locally verified, but the public E2E must be repeated after that repair is deployed.
 
 Authenticated memory inspection is implemented locally. The browser reloads project-scoped items and links from CockroachDB, so active decisions, superseded decisions, source quotes, rationales, and revision chains survive a page reload instead of depending on temporary browser state.
 
@@ -172,7 +172,7 @@ The planned hackathon integrations are:
 | --- | --- | --- |
 | CockroachDB Distributed Vector Indexing | Retrieve semantically related conversations and decisions. | Live embedding retrieval verified. |
 | CockroachDB Cloud Managed MCP Server | Provide controlled agent access to project memory. | Single-cluster OAuth and preliminary read-only audit verified live; final revision-chain audit pending. |
-| Amazon Bedrock | Extract, reason over, and respond with project context. | Live Cohere embedding verified; Nova agent-memory gate pending. |
+| Amazon Bedrock | Extract, reason over, and respond with project context. | Live Cohere retrieval and direct Nova agent-memory E2E verified; repaired public Nova gate pending redeployment. |
 | AWS Lambda | Run the serverless agent workflow. | Stack, API health, SSM runtime configuration, and CockroachDB session-memory smoke path verified live. |
 
 ## Memory Model
