@@ -64,6 +64,19 @@ Complete the CockroachDB Cloud browser sign-in. In **Authorize MCP Access**, sel
 
 This authentication is an external account action. Perform it only after an explicit execution instruction.
 
+### Recover an expired OAuth session
+
+If MCP startup fails with `invalid_grant` and reports that the refresh token was rejected, the server configuration has been found but the saved OAuth grant is expired or revoked. Do not edit, copy, or inspect the saved token.
+
+1. Reauthenticate `cockroachdb-cloud` from the Codex MCP connection control or run `codex mcp login cockroachdb-cloud` from an available Codex CLI.
+2. Sign in to the same CockroachDB Cloud organization.
+3. Confirm that the connection remains scoped to the configured single cluster.
+4. Grant **read** access only. Do not grant write access.
+5. Start a new Codex task after authentication so its tool inventory includes the refreshed MCP connection.
+6. Run only the allowlisted audit procedure below.
+
+An `invalid_grant` response is an authentication failure, not evidence of a CockroachDB query, schema, or application failure.
+
 ## Local Validation
 
 Before starting the OAuth flow, verify that the four allowlisted statements remain read-only, exclude sensitive data, use explicit limits, and reference columns present in migration `0001_initial.sql`:
@@ -86,6 +99,8 @@ The allowlisted MCP tools verified:
 - the query excludes the embedding value, demo sessions, token hashes, and credentials.
 
 The preliminary run has no `supersedes` link because it predates the successful public Nova conflict-and-revision flow. Do not present this preliminary result as the final decision-chain audit. Repeat the full procedure below with successful public agent run `738cf3ad-8bd4-4c3f-ba31-9330e4792a36`.
+
+On 2026-08-07, a final-audit discovery attempt reached the configured `cockroachdb-cloud` server but stopped before any query because its OAuth refresh token returned `invalid_grant`. Reauthenticate with the same single-cluster, read-only boundary before repeating the final audit.
 
 ## Live Audit Procedure
 
