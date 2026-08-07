@@ -14,12 +14,12 @@ Do not reuse the pre-audit diagnostic capture because one tool output displayed 
 
 - Use a 1920 x 1080 canvas and record the browser content area at 100% zoom.
 - In OBS Studio, use a 1920 x 1080 base and output canvas at 30 frames per second.
-- Record to MKV so an interrupted take remains recoverable, then use OBS **File > Remux Recordings** to create the upload-ready MP4.
+- Record with OBS Hybrid MP4. This keeps the interrupted-recording resilience of fragmented MP4 while producing an upload-ready MP4 without a separate remux step.
 - Use application-window capture sources rather than full-display capture. This keeps unrelated tabs, notifications, account details, and the pre-audit diagnostic output outside the recording surface.
 - Prepare three scenes before recording: **Public demo**, **Managed MCP evidence**, and **Architecture close**.
 - Disable desktop audio unless the demo intentionally uses it. Record the narration microphone on its own audio source and make a ten-second level test before the final take.
 - Use the English interface for the main workflow, then show the Japanese switch briefly.
-- Prepare the public demo, the read-only MCP result, and one architecture image or document before recording.
+- Prepare the public demo, the sanitized read-only MCP result in [`assets/mcp-audit-evidence.svg`](./assets/mcp-audit-evidence.svg), and the architecture visual before recording.
 - Reset the demo to the known fictional booking scenario before the take.
 - Crop the MCP result to the allowlisted columns documented in `MCP_AUDIT_RUNBOOK.md`.
 - For the MCP scene, show the succeeded run, `superseded` and `active` decision states, the `supersedes` relation, and `memory_items_embedding_idx`; do not show configuration or discovery output.
@@ -69,7 +69,7 @@ Do not reuse the pre-audit diagnostic capture because one tool output displayed 
 
 ### 2:05-2:25 — Managed MCP audit
 
-**On screen:** Show only the allowlisted read-only Managed MCP result for the successful public run, then highlight the run status and the two decision states.
+**On screen:** Show [`assets/mcp-audit-evidence.svg`](./assets/mcp-audit-evidence.svg), which contains only the allowlisted read-only Managed MCP result for the successful public run. Highlight the run status, the two decision states, the revision link, and the vector index.
 
 **Narration:**
 
