@@ -8,12 +8,12 @@ This document maps every MVP completion requirement to current evidence. `Prepar
 
 | Requirement | Required evidence | Current evidence | Status | Remaining gate |
 | --- | --- | --- | --- | --- |
-| Full demo runs from a public AWS URL | Successful `npm run e2e:public-demo -- --stack-name scopethread --apply` against deployed CloudFront and API endpoints | Two paid runs verified CloudFront security headers, API health, isolated session creation, and CockroachDB bootstrap, then stopped at `/analyze` with `MODEL_OUTPUT_INVALID`; the second run included the deployed cause-specific repair | Partially verified | Deploy safe issue telemetry, repeat the paid public E2E once, and fix the identified boundary |
+| Full demo runs from a public AWS URL | Successful `npm run e2e:public-demo -- --stack-name scopethread --apply` against deployed CloudFront and API endpoints | Three paid runs verified CloudFront security headers, API health, isolated session creation, and CockroachDB bootstrap; the third run used deployed telemetry to identify `MODEL_OUTPUT_UNLINKED_CONFLICT` | Partially verified | Deploy the deterministic single-memory link fix and repeat the paid public E2E once |
 | English and Japanese experience is public | English is the default, Japanese selection persists, known demo evidence is localized, and analysis requests carry the selected locale | Verified against the deployed CloudFront interface and Lambda API contract with no browser console errors or horizontal overflow | Verified live | Capture both locales in the final video |
 | CockroachDB persists structured state, evidence, embeddings, and revisions | Live records for conversations, memories, vectors, links, and agent runs; revision remains after reload | Migrations `0001` through `0003`, the least-privilege runtime role, the live `scopethread_app` login, fictional seed memory, vector index, and live embedding retrieval were verified; local persisted-memory and revision tests pass | Partially verified | Verify the complete workflow through the public E2E |
 | Distributed Vector Indexing is exercised and visible | Live vector retrieval and `SHOW INDEXES` evidence for `memory_items_embedding_idx` | Live Cohere embedding retrieval and the project-prefixed vector index were verified before this review | Verified live | Capture non-secret evidence in the final video |
 | Managed MCP inspects the same memory read-only | OAuth connection scoped to one cluster, read permission only, allowlisted audit query returns the public agent run and decision chain | Single-cluster OAuth, the vector index, a succeeded Cohere run, and its fictional persisted decision are verified through data-minimized read tools; that preliminary run has no revision link | Partially verified | Repeat the audit with the public Nova run and verify its decision chain |
-| Tests cover validation, isolation, conflict handling, and revisions | Passing automated suite whose assertions cover each behavior | `npm run check` passes 77 tests across 11 files plus type, migration, infrastructure, repository-safety, MCP-audit, and build checks | Verified locally | Re-run immediately before submission |
+| Tests cover validation, isolation, conflict handling, and revisions | Passing automated suite whose assertions cover each behavior | `npm run check` passes 79 tests across 11 files plus type, migration, infrastructure, repository-safety, MCP-audit, and build checks | Verified locally | Re-run immediately before submission |
 | Public repository is reproducible and contains no credentials | Clean public branch, setup/runbooks, tracked-file secret scan, ignored local secret files | GitHub `main` is current; `validate:repo-safety` scans 81 tracked files; `.env.local` and `.env.runtime.local` are ignored | Verified locally | Re-run after inserting final public links |
 | Public video demonstrates the memory flow in under three minutes | Public video URL and manual review against the storyboard and redaction checklist | A 2 minute 40 second storyboard is prepared in `DEVPOST_DRAFT.md` | Prepared | Record, review, upload, and add the URL |
 
@@ -33,16 +33,15 @@ This document maps every MVP completion requirement to current evidence. `Prepar
 
 Migration `0003_runtime_role.sql`, the `scopethread_app` runtime identity, the scoped development policies, the version-one runtime `SecureString`, the deployment bootstrap, and the 15-resource application stack were applied and verified on 2026-08-06. Run the remaining steps only after the corresponding explicit approval:
 
-1. Deploy the allowlisted Nova output-issue telemetry to the application stack.
-2. Re-run `npm run e2e:public-demo -- --stack-name scopethread --apply` once and inspect the safe validation category.
-3. Fix the identified validation boundary and capture a successful public run ID.
-4. Repeat the Managed MCP audit with that run ID and verify its decision chain.
-5. Record and review the video.
-6. Replace the remaining Devpost placeholders and perform the final audit.
+1. Deploy the deterministic single-memory conflict-link fix to the application stack.
+2. Re-run `npm run e2e:public-demo -- --stack-name scopethread --apply` once and capture a successful public run ID.
+3. Repeat the Managed MCP audit with that run ID and verify its decision chain.
+4. Record and review the video.
+5. Replace the remaining Devpost placeholders and perform the final audit.
 
 ## Current execution gate
 
-AWS approved and activated Nova 2 Lite for the global cross-region inference profile on 2026-08-07. The direct agent-memory E2E then succeeded with one retrieved evidence record, one grounded conflict, and two transactionally persisted embedded memories. The first public E2E reached `/analyze` but failed safely with `MODEL_OUTPUT_INVALID`. Cause-specific repair guidance was deployed, and a second explicitly approved run stopped at the same safe category without partial analysis persistence. Allowlisted issue telemetry is locally verified; its deployment and one diagnostic paid run remain explicit approval gates before the final fix, MCP revision-chain audit, and video.
+AWS approved and activated Nova 2 Lite for the global cross-region inference profile on 2026-08-07. The direct agent-memory E2E then succeeded with one retrieved evidence record, one grounded conflict, and two transactionally persisted embedded memories. The first public E2E reached `/analyze` but failed safely with `MODEL_OUTPUT_INVALID`. Cause-specific repair guidance was deployed, and a second explicitly approved run stopped at the same safe category without partial analysis persistence. A third run with deployed allowlisted telemetry identified `MODEL_OUTPUT_UNLINKED_CONFLICT`. The deterministic, conversation-grounded host fix is locally verified; its deployment and one paid proof run remain explicit approval gates before the final MCP revision-chain audit and video.
 
 ## Final evidence packet
 

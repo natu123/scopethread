@@ -85,7 +85,7 @@ The first deployment bootstrap reached the IAM user's aggregate inline-policy si
 
 #### External model activation
 
-The Cohere embedding path required accepting the third-party model agreement before live inference. Nova 2 Lite initially returned zero-quota throttling, so we kept account activation separate from code completion and requested review through AWS Support. AWS approved the global cross-region inference profile on 2026-08-07, and the direct agent-memory E2E then completed live conflict detection and transactional memory persistence. The first public E2E exposed a different issue: generated output could still fail strict schema or grounding validation. ScopeThread rejected that output without partial memory, and we added bounded, cause-specific repair guidance without sending raw model output back into the repair prompt. After that repair was deployed, a second public run still failed at the validation boundary, so we added allowlisted issue telemetry that identifies the validation class without storing generated content.
+The Cohere embedding path required accepting the third-party model agreement before live inference. Nova 2 Lite initially returned zero-quota throttling, so we kept account activation separate from code completion and requested review through AWS Support. AWS approved the global cross-region inference profile on 2026-08-07, and the direct agent-memory E2E then completed live conflict detection and transactional memory persistence. The first public E2E exposed a different issue: generated output could still fail strict schema or grounding validation. ScopeThread rejected that output without partial memory, and we added bounded, cause-specific repair guidance without sending raw model output back into the repair prompt. After that repair was deployed, a second public run still failed at the validation boundary. A third run with allowlisted telemetry identified an unlinked conflict, so the host now links the conflict deterministically when exactly one extracted memory has a source quote copied from the conversation while continuing to reject ambiguous cases.
 
 ### What we learned
 
@@ -108,8 +108,7 @@ The Cohere embedding path required accepting the third-party model agreement bef
 
 ### What's next
 
-- Deploy the allowlisted Nova output-issue telemetry.
-- Diagnose and fix the remaining public Nova validation boundary.
+- Deploy the deterministic single-memory conflict-link fix.
 - Re-run the guarded public demo E2E from the CloudFront URL.
 - Repeat the read-only CockroachDB Cloud Managed MCP audit with the public Nova run and verify its revision chain.
 - Record the final video and replace all submission placeholders.
