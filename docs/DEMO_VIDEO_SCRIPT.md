@@ -70,7 +70,7 @@ Do not reuse the pre-audit diagnostic capture because one tool output displayed 
 
 ### 2:25-2:40 — Architecture and close
 
-**On screen:** Show the architecture flow: browser, AWS, Bedrock, and CockroachDB. End on the ScopeThread tagline.
+**On screen:** Show [`assets/architecture-overview.svg`](./assets/architecture-overview.svg), which summarizes the browser, AWS, Bedrock, CockroachDB, and read-only Managed MCP flow. End on the ScopeThread tagline.
 
 **Narration:**
 

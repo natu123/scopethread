@@ -151,6 +151,8 @@ ScopeThread is not intended to be a chatbot with a transcript. Its memory change
 
 ## Planned Architecture
 
+![ScopeThread agentic memory architecture](docs/assets/architecture-overview.svg)
+
 ```text
 Web application
     |
