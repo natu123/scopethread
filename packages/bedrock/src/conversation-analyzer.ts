@@ -50,6 +50,7 @@ type ModelOutputIssue =
   | "unknown_evidence"
   | "missing_evidence"
   | "ungrounded_source_quote"
+  | "invalid_conflict_memory"
   | "unlinked_conflict";
 
 export class ModelOutputError extends Error {
@@ -78,6 +79,8 @@ function repairInstruction(issue: ModelOutputIssue): string {
       "For every conflict, include its priorMemoryId unchanged in retrievedEvidenceIds.",
     ungrounded_source_quote:
       "For every extracted memory, copy sourceQuote exactly from a contiguous substring of the supplied conversation.",
+    invalid_conflict_memory:
+      "Every conflict must link to an extracted memory whose kind is requirement or decision.",
     unlinked_conflict:
       "For every conflict, copy conflict.newStatement exactly from one extracted memory content or sourceQuote. Do not paraphrase it.",
   };
@@ -192,24 +195,35 @@ function assertGroundedResult(
       );
     }
 
-    const hasLinkedNewMemory = result.extractedMemories.some(
+    let linkedNewMemory = result.extractedMemories.find(
       (memory) =>
         memory.content === conflict.newStatement ||
         memory.sourceQuote === conflict.newStatement,
     );
-    if (!hasLinkedNewMemory) {
+    if (!linkedNewMemory) {
       const groundedMemories = result.extractedMemories.filter((memory) =>
         conversationText.includes(memory.sourceQuote),
       );
       if (groundedMemories.length === 1 && groundedMemories[0]) {
-        conflict.newStatement = groundedMemories[0].sourceQuote;
-        continue;
+        linkedNewMemory = groundedMemories[0];
+        conflict.newStatement = linkedNewMemory.sourceQuote;
+      } else {
+        throw new ModelOutputError(
+          "unlinked_conflict",
+          "Bedrock returned a conflict that cannot be linked to an extracted memory.",
+        );
       }
+    }
+    if (
+      linkedNewMemory.kind !== "requirement" &&
+      linkedNewMemory.kind !== "decision"
+    ) {
       throw new ModelOutputError(
-        "unlinked_conflict",
-        "Bedrock returned a conflict that cannot be linked to an extracted memory.",
+        "invalid_conflict_memory",
+        "Bedrock linked a conflict to a memory that cannot become a decision.",
       );
     }
+    linkedNewMemory.status = "proposed";
   }
 }
 

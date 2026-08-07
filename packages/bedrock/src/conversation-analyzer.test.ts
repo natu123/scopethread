@@ -173,6 +173,33 @@ describe("BedrockConversationAnalyzer", () => {
     expect(send).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps a conflict candidate proposed until explicit confirmation", async () => {
+    const activeCandidate = modelResult();
+    activeCandidate.extractedMemories[0]!.status = "active";
+    const { analyzer, send } = analyzerFor(activeCandidate);
+
+    const result = await analyzer.analyze(context);
+
+    expect(result.extractedMemories[0]?.status).toBe("proposed");
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("repairs a conflict linked to a non-decision memory kind", async () => {
+    const invalidKind = modelResult();
+    invalidKind.extractedMemories[0]!.kind = "rationale";
+    const { analyzer, send } = analyzerForResponses([
+      JSON.stringify(invalidKind),
+      JSON.stringify(modelResult()),
+    ]);
+
+    const result = await analyzer.analyze(context);
+
+    expect(result.extractedMemories[0]?.kind).toBe("requirement");
+    expect(send.mock.calls[1]?.[0]?.input.system[0].text).toContain(
+      "kind is requirement or decision",
+    );
+  });
+
   it("repairs a source quote that is not present in the conversation", async () => {
     const ungrounded = modelResult();
     ungrounded.extractedMemories[0]!.sourceQuote =
