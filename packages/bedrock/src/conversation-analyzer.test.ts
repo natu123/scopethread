@@ -154,7 +154,7 @@ describe("BedrockConversationAnalyzer", () => {
     });
   });
 
-  it("repairs an unlinked conflict with exact-copy guidance", async () => {
+  it("links a single grounded memory without a paid repair retry", async () => {
     const unlinked = modelResult({
       conflicts: [
         {
@@ -165,16 +165,28 @@ describe("BedrockConversationAnalyzer", () => {
         },
       ],
     });
+    const { analyzer, send } = analyzerFor(unlinked);
+
+    const result = await analyzer.analyze(context);
+
+    expect(result.conflicts[0]?.newStatement).toBe(newStatement);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("repairs a source quote that is not present in the conversation", async () => {
+    const ungrounded = modelResult();
+    ungrounded.extractedMemories[0]!.sourceQuote =
+      "A quote that was never supplied by the client.";
     const { analyzer, send } = analyzerForResponses([
-      JSON.stringify(unlinked),
+      JSON.stringify(ungrounded),
       JSON.stringify(modelResult()),
     ]);
 
     const result = await analyzer.analyze(context);
 
-    expect(result.conflicts[0]?.newStatement).toBe(newStatement);
+    expect(result.extractedMemories[0]?.sourceQuote).toBe(newStatement);
     expect(send.mock.calls[1]?.[0]?.input.system[0].text).toContain(
-      "copy conflict.newStatement exactly from one extracted memory content or sourceQuote",
+      "copy sourceQuote exactly from a contiguous substring",
     );
   });
 
@@ -244,22 +256,39 @@ describe("BedrockConversationAnalyzer", () => {
   });
 
   it("rejects a conflict that cannot link to an extracted memory", async () => {
-    const { analyzer, send } = analyzerFor(
-      modelResult({
-        conflicts: [
-          {
-            priorMemoryId,
-            newStatement: "A model-generated statement with no source memory.",
-            explanation: "Unlinkable conflict.",
-            confirmationQuestion: "Should this change?",
-          },
-        ],
-      }),
-    );
+    const secondStatement = "Keep the existing contact form.";
+    const ambiguous = modelResult({
+      extractedMemories: [
+        ...modelResult().extractedMemories,
+        {
+          kind: "decision",
+          status: "active",
+          content: secondStatement,
+          rationale: null,
+          sourceQuote: secondStatement,
+          confidence: 0.9,
+        },
+      ],
+      conflicts: [
+        {
+          priorMemoryId,
+          newStatement: "A model-generated statement with no source memory.",
+          explanation: "Unlinkable conflict.",
+          confirmationQuestion: "Should this change?",
+        },
+      ],
+    });
+    const { analyzer, send } = analyzerFor(ambiguous);
 
-    await expect(analyzer.analyze(context)).rejects.toThrow(
-      "cannot be linked to an extracted memory",
-    );
+    await expect(
+      analyzer.analyze({
+        ...context,
+        request: {
+          ...context.request,
+          conversationText: `${newStatement} ${secondStatement}`,
+        },
+      }),
+    ).rejects.toThrow("cannot be linked to an extracted memory");
     expect(send.mock.calls[1]?.[0]?.input.system[0].text).toContain(
       "copy conflict.newStatement exactly from one extracted memory content or sourceQuote",
     );
