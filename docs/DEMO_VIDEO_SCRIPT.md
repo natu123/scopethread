@@ -2,6 +2,8 @@
 
 Target duration: 2 minutes 40 seconds. The final upload must be public on YouTube or Vimeo and remain under three minutes.
 
+Upload-ready English captions are available in [`assets/demo-video-captions.srt`](./assets/demo-video-captions.srt). They use the same seven scene boundaries and narration as this script.
+
 ## Recording gate
 
 The Managed MCP gate was satisfied on 2026-08-07: the allowlisted audit in `MCP_AUDIT_RUNBOOK.md` returned the successful public run, its revision chain, and the vector index through the single-cluster read-only connection. Use only fictional client content. Keep browser developer tools, address-bar query strings, AWS account details, CockroachDB cluster details, terminal environment variables, and authentication screens out of frame.
@@ -90,4 +92,5 @@ Do not reuse the pre-audit diagnostic capture because one tool output displayed 
 - Confirm no identifiers, credentials, tokens, URLs with secrets, or real client data appear in video or audio.
 - Confirm narration matches the behavior visible in the final deployed application.
 - Upload publicly to YouTube or Vimeo, test the URL in a signed-out window, and replace `[VIDEO_DEMO_URL]` in `DEVPOST_DRAFT.md`.
+- Upload `assets/demo-video-captions.srt` as the English caption track and verify that all seven cues remain synchronized after platform processing.
 - After the approved recording is complete, disconnect or revoke the Managed MCP OAuth session as required by `MCP_AUDIT_RUNBOOK.md`.

@@ -1,0 +1,49 @@
+1
+00:00:01,000 --> 00:00:19,000
+Website projects rarely lose requirements because nobody took notes.
+They lose the reasoning that connects those notes. ScopeThread is an
+agentic-memory application that preserves client evidence, current
+decisions, and the history behind every change.
+
+2
+00:00:21,000 --> 00:00:39,000
+This project currently has an active decision that online booking is not
+required. ScopeThread stores it as structured memory in CockroachDB,
+together with the exact source quote and rationale. It is more than
+transcript search because the record represents what is currently true.
+
+3
+00:00:41,000 --> 00:01:14,000
+A later client message requests a booking button on every page. The AWS
+Lambda workflow creates a multilingual embedding with Amazon Bedrock,
+retrieves related memory through CockroachDB vector search, and asks Amazon
+Nova to analyze the evidence. The agent reconnects this request with the
+earlier decision and flags a grounded conflict instead of silently
+replacing history.
+
+4
+00:01:16,000 --> 00:01:44,000
+I confirm that the direction changed and provide the reason. In one
+controlled transaction, the prior decision becomes superseded, the
+replacement becomes active, and ScopeThread stores an explicit supersedes
+link. The old decision remains available as evidence rather than
+disappearing in an edit.
+
+5
+00:01:46,000 --> 00:02:04,000
+After a full reload, the revision chain is still present because
+CockroachDB is the durable memory layer. The interface is English-first for
+reviewers and also supports natural Japanese without changing source quotes
+or project state.
+
+6
+00:02:06,000 --> 00:02:24,000
+A separate read-only CockroachDB Cloud Managed MCP connection audits the
+same memory. This result shows the successful agent run, the superseded
+prior decision, the active replacement, and their revision link without
+exposing credentials or client text.
+
+7
+00:02:26,000 --> 00:02:39,000
+ScopeThread combines AWS execution with CockroachDB relational and vector
+memory. It helps creators never lose the thread of client decisions.
