@@ -166,6 +166,6 @@ The final English narration, on-screen actions, recording gate, and redaction re
 - [x] Verify the final Managed MCP audit returns the successful public run, revision chain, and vector index without write operations or unexpected data exposure.
 - [ ] Confirm the video contains no account IDs, cluster IDs, tokens, credentials, or real client data.
 - [ ] Complete every final-take review item in `DEMO_VIDEO_SCRIPT.md`.
-- [ ] Confirm every accomplishment above has current evidence.
+- [x] Confirm every accomplishment above has current evidence in `SUBMISSION_READINESS.md`.
 - [x] Re-read the current hackathon rules before submission.
 - [ ] Remove this draft warning only after all checks pass.
