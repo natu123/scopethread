@@ -172,6 +172,71 @@ describe("AnalyzeConversation", () => {
     expect(embeddings.documentCalls).toHaveLength(0);
   });
 
+  it("records a safe model-output issue without storing generated content", async () => {
+    const repository = new FakeRepository([priorDecision]);
+    const embeddings = new FakeEmbeddings();
+    const invalidOutput = new Error("Sensitive model output must not be stored.") as Error & {
+      issue: string;
+    };
+    invalidOutput.name = "ModelOutputError";
+    invalidOutput.issue = "unlinked_conflict";
+    const useCase = new AnalyzeConversation(
+      repository,
+      {
+        analyze: async () => {
+          throw invalidOutput;
+        },
+      },
+      embeddings,
+      options(),
+    );
+
+    await expect(
+      useCase.execute({
+        projectId,
+        conversationText: "Add a booking button.",
+        idempotencyKey: "demo-request-issue-001",
+      }),
+    ).rejects.toMatchObject({
+      errorCode: "MODEL_OUTPUT_UNLINKED_CONFLICT",
+      runId,
+    });
+    expect(repository.failed[0]?.errorCode).toBe(
+      "MODEL_OUTPUT_UNLINKED_CONFLICT",
+    );
+    expect(repository.failed[0]).not.toHaveProperty("message");
+    expect(repository.saved).toHaveLength(0);
+  });
+
+  it("does not expose an unrecognized model-output issue", async () => {
+    const repository = new FakeRepository([priorDecision]);
+    const embeddings = new FakeEmbeddings();
+    const invalidOutput = new Error("Unexpected output detail.") as Error & {
+      issue: string;
+    };
+    invalidOutput.name = "ModelOutputError";
+    invalidOutput.issue = "conversation_contents";
+    const useCase = new AnalyzeConversation(
+      repository,
+      {
+        analyze: async () => {
+          throw invalidOutput;
+        },
+      },
+      embeddings,
+      options(),
+    );
+
+    await expect(
+      useCase.execute({
+        projectId,
+        conversationText: "Add a booking button.",
+        idempotencyKey: "demo-request-issue-002",
+      }),
+    ).rejects.toMatchObject({ errorCode: "MODEL_OUTPUT_INVALID", runId });
+    expect(repository.failed[0]?.errorCode).toBe("MODEL_OUTPUT_INVALID");
+  });
+
   it("rejects empty conversations before retrieval", async () => {
     const repository = new FakeRepository([priorDecision]);
     const embeddings = new FakeEmbeddings();

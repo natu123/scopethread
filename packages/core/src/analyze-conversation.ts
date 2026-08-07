@@ -49,6 +49,28 @@ function errorName(error: unknown): string {
   return error instanceof Error ? error.name : "UnknownError";
 }
 
+const modelOutputIssues = new Set([
+  "no_text",
+  "invalid_json",
+  "schema_mismatch",
+  "unknown_evidence",
+  "missing_evidence",
+  "unlinked_conflict",
+]);
+
+function modelOutputIssue(error: unknown): string | null {
+  if (
+    error instanceof Error &&
+    error.name === "ModelOutputError" &&
+    "issue" in error &&
+    typeof error.issue === "string" &&
+    modelOutputIssues.has(error.issue)
+  ) {
+    return error.issue.toUpperCase();
+  }
+  return null;
+}
+
 function classifyError(stage: AnalysisStage, error: unknown): string {
   const name = errorName(error);
   if (name === "ThrottlingException") {
@@ -58,7 +80,8 @@ function classifyError(stage: AnalysisStage, error: unknown): string {
     stage === "analysis" &&
     ["ModelOutputError", "SyntaxError", "ZodError"].includes(name)
   ) {
-    return "MODEL_OUTPUT_INVALID";
+    const issue = modelOutputIssue(error);
+    return issue ? `MODEL_OUTPUT_${issue}` : "MODEL_OUTPUT_INVALID";
   }
 
   return {
