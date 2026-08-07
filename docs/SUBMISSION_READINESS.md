@@ -14,7 +14,7 @@ This document maps every MVP completion requirement to current evidence. `Prepar
 | Distributed Vector Indexing is exercised and visible | Live vector retrieval and `SHOW INDEXES` evidence for `memory_items_embedding_idx` | Live Cohere embedding retrieval and the project-prefixed vector index were verified before this review | Verified live | Capture non-secret evidence in the final video |
 | Managed MCP inspects the same memory read-only | OAuth connection scoped to one cluster, read permission only, allowlisted audit query returns the public agent run and decision chain | Single-cluster OAuth and preliminary read-only MCP evidence are verified; direct read-only SQL confirmed the successful public Nova chain, but the same query still needs to be repeated through Managed MCP | Partially verified | Repeat the allowlisted Managed MCP audit for the successful public run |
 | Tests cover validation, isolation, conflict handling, and revisions | Passing automated suite whose assertions cover each behavior | `npm run check` passes 81 tests across 11 files plus type, migration, infrastructure, repository-safety, MCP-audit, and build checks | Verified locally | Re-run immediately before submission |
-| Public repository is reproducible and contains no credentials | Clean public branch, setup/runbooks, tracked-file and full-history secret scans, ignored local secret files | GitHub reports the repository is currently private; the MIT license is detected, `main` is current, `validate:repo-safety` scans tracked files, `validate:history-safety` scans every reachable Git blob, and local secret files are ignored | Not ready | After explicit approval, make the repository public, set the public demo as its homepage, and re-run both safety audits |
+| Public repository is reproducible and contains no credentials | Clean public branch, setup/runbooks, tracked-file and full-history secret scans, ignored local secret files | GitHub reports the repository as public with `main`, the MIT license, and the public demo homepage; anonymous requests to the repository, README, and license returned HTTP 200; both safety validators passed immediately before publicization | Verified public | Re-run both safety audits and record the final commit hash immediately before submission |
 | Public video demonstrates the memory flow in under three minutes | Public video URL and manual review against the storyboard and redaction checklist | A 2 minute 40 second storyboard is prepared in `DEVPOST_DRAFT.md`; the timed English narration, capture actions, recording gate, and redaction review are prepared in `DEMO_VIDEO_SCRIPT.md` | Prepared | Complete the Managed MCP audit, then record, review, upload, and add the URL |
 
 ## Supporting quality audit
@@ -33,10 +33,9 @@ This document maps every MVP completion requirement to current evidence. `Prepar
 
 Migration `0003_runtime_role.sql`, the `scopethread_app` runtime identity, the scoped development policies, the version-one runtime `SecureString`, the deployment bootstrap, and the 15-resource application stack were applied and verified on 2026-08-06. Run the remaining steps only after the corresponding explicit approval:
 
-1. After explicit approval, make the GitHub repository public and set its homepage to the public demo URL.
-2. Repeat the Managed MCP audit with the successful public run ID and verify its decision chain.
-3. Record and review the video.
-4. Replace the remaining Devpost placeholders and perform the final audit.
+1. Repeat the Managed MCP audit with the successful public run ID and verify its decision chain.
+2. Record and review the video.
+3. Replace the remaining Devpost placeholders and perform the final audit.
 
 ## Current execution gate
 

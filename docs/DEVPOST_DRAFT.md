@@ -159,7 +159,7 @@ The final English narration, on-screen actions, recording gate, and redaction re
 ## Final verification checklist
 
 - [x] Confirm the public demo link uses the verified CloudFront URL.
-- [ ] Confirm the GitHub repository is public, displays its MIT license, and links to the public demo.
+- [x] Confirm the GitHub repository is public, displays its MIT license, and links to the public demo.
 - [ ] Replace `[VIDEO_DEMO_URL]` with the public video URL.
 - [x] Verify Nova live inference from `scopethread-dev`.
 - [x] Verify the live public E2E succeeds from the deployed stack.
