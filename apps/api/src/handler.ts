@@ -461,7 +461,7 @@ async function handleRequest(
         error: "ANALYSIS_FAILED",
         message: "The agent could not analyze this conversation.",
         ...(error instanceof AnalyzeConversationError
-          ? { runId: error.runId }
+          ? { runId: error.runId, category: error.errorCode }
           : {}),
       });
     }

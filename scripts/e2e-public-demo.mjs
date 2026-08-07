@@ -44,7 +44,15 @@ async function jsonRequest(url, init = {}) {
     const code = payload && typeof payload.error === "string"
       ? payload.error
       : `HTTP_${response.status}`;
-    throw new Error(`${new URL(url).pathname} failed with ${code}.`);
+    const category = payload && typeof payload.category === "string"
+      ? ` (${payload.category})`
+      : "";
+    const run = payload && typeof payload.runId === "string"
+      ? ` Agent run: ${payload.runId}.`
+      : "";
+    throw new Error(
+      `${new URL(url).pathname} failed with ${code}${category}.${run}`,
+    );
   }
   return { response, payload };
 }

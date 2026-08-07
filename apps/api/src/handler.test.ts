@@ -4,6 +4,7 @@ import type {
   APIGatewayProxyStructuredResultV2,
 } from "aws-lambda";
 import {
+  AnalyzeConversationError,
   ConfirmRevisionError,
   DismissConflictError,
   type ConflictDismissalOutcome,
@@ -393,6 +394,52 @@ describe("API handler", () => {
     expect(JSON.parse(response.body ?? "{}").error).toBe(
       "SERVICE_NOT_CONFIGURED",
     );
+  });
+
+  it("returns only the allowlisted analysis category and run ID", async () => {
+    const failedRunId = "10000000-0000-4000-8000-000000000005";
+    const execute = vi.fn().mockRejectedValue(
+      new AnalyzeConversationError(
+        failedRunId,
+        "MODEL_OUTPUT_UNLINKED_CONFLICT",
+        { cause: new Error("Generated conversation content.") },
+      ),
+    );
+    const dependencies: HandlerDependencies = {
+      getAnalyzeUseCase: async () => ({ execute }),
+      getRevisionUseCase: async () => ({ execute: vi.fn() }),
+      getDismissalUseCase: getUnexpectedDismissalUseCase,
+      getSessionRepository: async () => ({
+        createDemoSession: vi.fn(),
+        authorizeDemoRequest: async () => ({
+          status: "authorized",
+          remainingAnalysisRequests: 5,
+        }),
+      }),
+      getMemoryInspectionRepository: getEmptyMemoryInspectionRepository,
+    };
+
+    const response = (await createHandler(dependencies)(
+      event(
+        "POST",
+        "/analyze",
+        JSON.stringify({
+          projectId: "10000000-0000-4000-8000-000000000002",
+          conversationText: "Add a booking button to every page.",
+          idempotencyKey: "handler-test-output-category",
+        }),
+      ),
+    )) as APIGatewayProxyStructuredResultV2;
+    const payload = JSON.parse(response.body ?? "{}");
+
+    expect(response.statusCode).toBe(502);
+    expect(payload).toEqual({
+      error: "ANALYSIS_FAILED",
+      message: "The agent could not analyze this conversation.",
+      runId: failedRunId,
+      category: "MODEL_OUTPUT_UNLINKED_CONFLICT",
+    });
+    expect(response.body).not.toContain("Generated conversation content.");
   });
 
   it("confirms a stored conflict proposal through the revision endpoint", async () => {
