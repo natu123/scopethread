@@ -144,6 +144,8 @@ Suggested Devpost tags:
 
 Target duration: 2 minutes 40 seconds.
 
+The final English narration, on-screen actions, recording gate, and redaction review are defined in [`DEMO_VIDEO_SCRIPT.md`](./DEMO_VIDEO_SCRIPT.md).
+
 | Time | Scene | Evidence to show |
 | --- | --- | --- |
 | 0:00-0:20 | Problem and product | Explain why transcripts lose decision context. |
@@ -163,6 +165,7 @@ Target duration: 2 minutes 40 seconds.
 - [x] Verify the live public E2E succeeds from the deployed stack.
 - [x] Verify the MCP OAuth connection is single-cluster and read-only.
 - [ ] Confirm the video contains no account IDs, cluster IDs, tokens, credentials, or real client data.
+- [ ] Complete every final-take review item in `DEMO_VIDEO_SCRIPT.md`.
 - [ ] Confirm every accomplishment above has current evidence.
 - [x] Re-read the current hackathon rules before submission.
 - [ ] Remove this draft warning only after all checks pass.
