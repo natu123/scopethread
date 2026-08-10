@@ -470,6 +470,10 @@ textarea:disabled {
   text-transform: uppercase;
 }
 
+.revision-chain > span[aria-hidden="true"] {
+  grid-column: 1 / -1;
+}
+
 .revision-chain p {
   margin-bottom: 0;
   line-height: 1.5;
