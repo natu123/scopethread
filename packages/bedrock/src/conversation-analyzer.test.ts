@@ -136,6 +136,31 @@ describe("BedrockConversationAnalyzer", () => {
       ],
     });
     expect(result.extractedMemories[0]?.sourceQuote).toBe(japaneseStatement);
+    expect(result.conflicts[0]).toMatchObject({
+      explanation:
+        "新しい依頼は、保存済みの有効な決定と異なる方向を示しています。",
+      confirmationQuestion:
+        "保存済みの決定を変更し、この新しい方向を採用しますか？",
+    });
+    expect(result.nextQuestions[0]).toBe(
+      "保存済みの決定を変更し、この新しい方向を採用しますか？",
+    );
+  });
+
+  it("normalizes English conflict control copy on the host", async () => {
+    const { analyzer } = analyzerFor(modelResult());
+
+    const result = await analyzer.analyze(context);
+
+    expect(result.conflicts[0]).toMatchObject({
+      explanation:
+        "The new request points in a different direction from the stored active decision.",
+      confirmationQuestion:
+        "Should the stored decision be changed to adopt this new direction?",
+    });
+    expect(result.nextQuestions[0]).toBe(
+      "Should the stored decision be changed to adopt this new direction?",
+    );
   });
 
   it.each([

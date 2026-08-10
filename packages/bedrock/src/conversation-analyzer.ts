@@ -321,6 +321,43 @@ function normalizeNewDecisionStates(
   }
 }
 
+function normalizeConflictCopy(
+  result: ReturnType<typeof AnalysisResultSchema.parse>,
+  locale: "en" | "ja" | undefined,
+): void {
+  if (result.conflicts.length === 0) {
+    return;
+  }
+
+  const copy =
+    locale === "ja"
+      ? {
+          explanation:
+            "新しい依頼は、保存済みの有効な決定と異なる方向を示しています。",
+          confirmationQuestion:
+            "保存済みの決定を変更し、この新しい方向を採用しますか？",
+        }
+      : {
+          explanation:
+            "The new request points in a different direction from the stored active decision.",
+          confirmationQuestion:
+            "Should the stored decision be changed to adopt this new direction?",
+        };
+  const modelQuestions = new Set(
+    result.conflicts.map((conflict) => conflict.confirmationQuestion),
+  );
+
+  for (const conflict of result.conflicts) {
+    conflict.explanation = copy.explanation;
+    conflict.confirmationQuestion = copy.confirmationQuestion;
+  }
+
+  result.nextQuestions = [
+    copy.confirmationQuestion,
+    ...result.nextQuestions.filter((question) => !modelQuestions.has(question)),
+  ];
+}
+
 export class BedrockConversationAnalyzer implements ConversationAnalyzer {
   constructor(
     private readonly client: BedrockRuntimeClient,
@@ -395,6 +432,7 @@ export class BedrockConversationAnalyzer implements ConversationAnalyzer {
           continue;
         }
         normalizeNewDecisionStates(result);
+        normalizeConflictCopy(result, context.request.locale);
         return result;
       } catch (error) {
         const outputError =
