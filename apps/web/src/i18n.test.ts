@@ -17,6 +17,11 @@ describe("web localization", () => {
     expect(copy.en.emptyNextQuestion).toBe(
       "A grounded confirmation prompt will appear here.",
     );
+    expect(copy.en.confirmRevision).toBe("Adopt new direction");
+    expect(copy.en.dismissConflict).toBe("Keep current decision");
+    expect(copy.en.reasonPlaceholder).toBe(
+      "Explain why this direction was chosen.",
+    );
     expect(analysesLeftLabel(1, "en")).toBe("1 analysis left");
     expect(analysesLeftLabel(3, "en")).toBe("3 analyses left");
     expect(groundedRecordsLabel(1, "en")).toContain("record.");
@@ -31,6 +36,11 @@ describe("web localization", () => {
     expect(copy.ja.nextQuestion).toBe("確認が必要です");
     expect(copy.ja.emptyNextQuestion).toBe(
       "根拠に基づく確認事項が、ここに表示されます。",
+    );
+    expect(copy.ja.confirmRevision).toBe("新しい方針を採用");
+    expect(copy.ja.dismissConflict).toBe("現在の決定を維持");
+    expect(copy.ja.reasonPlaceholder).toBe(
+      "この方針を選んだ理由を入力してください。",
     );
     expect(activeDecisionLabel(2, "ja")).toBe("有効な決定 2件");
     expect(memoryKindLabel("open_question", "ja")).toBe("未決事項");
