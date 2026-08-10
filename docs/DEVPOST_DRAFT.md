@@ -108,7 +108,8 @@ The Cohere embedding path required accepting the third-party model agreement bef
 
 ### What's next
 
-- Record the final video and replace all submission placeholders.
+- Deploy and verify the host-owned source-quote evidence fix.
+- Complete the final submission audit and publish the Devpost entry.
 
 ## Built with
 
@@ -137,31 +138,32 @@ Suggested Devpost tags:
 
 - Source code: https://github.com/natu123/scopethread
 - Public demo: [https://d2kn7tl59k7usc.cloudfront.net/](https://d2kn7tl59k7usc.cloudfront.net/)
-- Video demo: `[VIDEO_DEMO_URL]`
+- Video demo: [https://www.youtube.com/watch?v=T7881nwgDD0](https://www.youtube.com/watch?v=T7881nwgDD0)
 
 ## Video outline
 
-Target duration: 2 minutes 40 seconds.
+Published duration: 2 minutes 14 seconds.
 
 The final English narration, on-screen actions, recording gate, and redaction review are defined in [`DEMO_VIDEO_SCRIPT.md`](./DEMO_VIDEO_SCRIPT.md).
 
 | Time | Scene | Evidence to show |
 | --- | --- | --- |
-| 0:00-0:20 | Problem and product | Explain why transcripts lose decision context. |
-| 0:20-0:40 | Initial project memory | Show the active no-booking decision and source quote. |
-| 0:40-1:15 | Live agent analysis | Submit the later booking request and show the grounded conflict and run ID. |
-| 1:15-1:45 | Confirm the revision | Enter the reason and show the old decision become superseded. |
-| 1:45-2:05 | Reload persistence | Reload the page and show the same revision chain from CockroachDB. |
-| 2:05-2:25 | Managed MCP audit | Show the read-only query returning the same run and decision chain. |
-| 2:25-2:40 | Architecture and close | Show CockroachDB, Bedrock, and the agentic-memory data flow. |
+| 0:00-0:18 | Problem and product | Explain why transcripts lose decision context. |
+| 0:18-0:38 | Initial project memory | Show the active no-booking decision and source quote. |
+| 0:38-1:04 | Live agent analysis | Submit the later booking request and show the grounded conflict and run ID. |
+| 1:04-1:25 | Confirm the revision | Enter the reason and show the old decision become superseded. |
+| 1:25-1:41 | Reload and locale | Show persistence after reload and the English/Japanese interface. |
+| 1:41-2:01 | Managed MCP audit | Show the read-only evidence for the same run and decision chain. |
+| 2:01-2:14 | Architecture and close | Show CockroachDB, Bedrock, and the agentic-memory data flow. |
 
 ## Final verification checklist
 
 - [x] Confirm the public demo link uses the verified CloudFront URL.
 - [x] Confirm the GitHub repository is public, displays its MIT license, and links to the public demo.
-- [ ] Replace `[VIDEO_DEMO_URL]` with the public video URL.
+- [x] Confirm the public YouTube video URL is included in the submission links.
 - [x] Verify Nova live inference from `scopethread-dev`.
 - [x] Verify the live public E2E succeeds from the deployed stack.
+- [ ] Deploy commit `472673a` and verify the Japanese public analysis path.
 - [x] Verify the MCP OAuth connection is single-cluster and read-only.
 - [x] Verify the final Managed MCP audit returns the successful public run, revision chain, and vector index without write operations or unexpected data exposure.
 - [ ] Confirm the video contains no account IDs, cluster IDs, tokens, credentials, or real client data.
