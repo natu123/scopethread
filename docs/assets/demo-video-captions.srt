@@ -1,49 +1,199 @@
 1
-00:00:01,000 --> 00:00:19,000
-Website projects rarely lose requirements because nobody took notes.
-They lose the reasoning that connects those notes. ScopeThread is an
-agentic-memory application that preserves client evidence, current
-decisions, and the history behind every change.
+00:00:00,067 --> 00:00:02,300
+Website projects rarely lose requirements
 
 2
-00:00:21,000 --> 00:00:39,000
-This project currently has an active decision that online booking is not
-required. ScopeThread stores it as structured memory in CockroachDB,
-together with the exact source quote and rationale. It is more than
-transcript search because the record represents what is currently true.
+00:00:02,300 --> 00:00:04,980
+because nobody took notes. They lose
 
 3
-00:00:41,000 --> 00:01:14,000
-A later client message requests a booking button on every page. The AWS
-Lambda workflow creates a multilingual embedding with Amazon Bedrock,
-retrieves related memory through CockroachDB vector search, and asks Amazon
-Nova to analyze the evidence. The agent reconnects this request with the
-earlier decision and flags a grounded conflict instead of silently
-replacing history.
+00:00:04,980 --> 00:00:07,660
+the reasoning that connects those notes.
 
 4
-00:01:16,000 --> 00:01:44,000
-I confirm that the direction changed and provide the reason. In one
-controlled transaction, the prior decision becomes superseded, the
-replacement becomes active, and ScopeThread stores an explicit supersedes
-link. The old decision remains available as evidence rather than
-disappearing in an edit.
+00:00:07,660 --> 00:00:10,340
+ScopeThread is an agentic-memory
 
 5
-00:01:46,000 --> 00:02:04,000
-After a full reload, the revision chain is still present because
-CockroachDB is the durable memory layer. The interface is English-first for
-reviewers and also supports natural Japanese without changing source quotes
-or project state.
+00:00:10,340 --> 00:00:12,127
+application that preserves client
 
 6
-00:02:06,000 --> 00:02:24,000
-A separate read-only CockroachDB Cloud Managed MCP connection audits the
-same memory. This result shows the successful agent run, the superseded
-prior decision, the active replacement, and their revision link without
-exposing credentials or client text.
+00:00:12,127 --> 00:00:14,360
+evidence, current decisions, and the
 
 7
-00:02:26,000 --> 00:02:39,000
-ScopeThread combines AWS execution with CockroachDB relational and vector
-memory. It helps creators never lose the thread of client decisions.
+00:00:14,360 --> 00:00:16,147
+history behind every change.
+
+8
+00:00:18,377 --> 00:00:20,670
+This project currently has an active
+
+9
+00:00:20,670 --> 00:00:22,963
+decision that online booking is not
+
+10
+00:00:22,963 --> 00:00:25,257
+required. ScopeThread stores it as
+
+11
+00:00:25,257 --> 00:00:27,550
+structured memory in CockroachDB, together
+
+12
+00:00:27,550 --> 00:00:29,843
+with the exact source quote and
+
+13
+00:00:29,843 --> 00:00:32,137
+rationale. It is more than transcript
+
+14
+00:00:32,137 --> 00:00:34,430
+search because the record represents what
+
+15
+00:00:34,430 --> 00:00:35,577
+is currently true.
+
+16
+00:00:38,437 --> 00:00:41,367
+A later client message requests a booking
+
+17
+00:00:41,367 --> 00:00:44,297
+button on every page. The AWS Lambda
+
+18
+00:00:44,297 --> 00:00:46,390
+workflow creates a multilingual embedding
+
+19
+00:00:46,390 --> 00:00:48,483
+with Amazon Bedrock, retrieves related
+
+20
+00:00:48,483 --> 00:00:50,995
+memory through CockroachDB vector search,
+
+21
+00:00:50,995 --> 00:00:53,925
+and asks Amazon Nova to analyze the
+
+22
+00:00:53,925 --> 00:00:56,018
+evidence. The agent reconnects this
+
+23
+00:00:56,018 --> 00:00:58,529
+request with the earlier decision and
+
+24
+00:00:58,529 --> 00:01:01,041
+flags a grounded conflict instead of
+
+25
+00:01:01,041 --> 00:01:02,297
+silently replacing history.
+
+26
+00:01:04,407 --> 00:01:07,404
+I confirm that the direction changed and
+
+27
+00:01:07,404 --> 00:01:09,973
+provide the reason. In one controlled
+
+28
+00:01:09,973 --> 00:01:12,114
+transaction, the prior decision becomes
+
+29
+00:01:12,114 --> 00:01:13,827
+superseded, the replacement becomes
+
+30
+00:01:13,827 --> 00:01:16,396
+active, and ScopeThread stores an
+
+31
+00:01:16,396 --> 00:01:18,537
+explicit supersedes link. The old
+
+32
+00:01:18,537 --> 00:01:20,678
+decision remains available as evidence
+
+33
+00:01:20,678 --> 00:01:23,247
+rather than disappearing in an edit.
+
+34
+00:01:25,447 --> 00:01:28,194
+After a full reload, the revision chain
+
+35
+00:01:28,194 --> 00:01:30,941
+is still present because CockroachDB is
+
+36
+00:01:30,941 --> 00:01:33,295
+the durable memory layer. The interface
+
+37
+00:01:33,295 --> 00:01:36,042
+is English-first for reviewers and also
+
+38
+00:01:36,042 --> 00:01:37,612
+supports natural Japanese without
+
+39
+00:01:37,612 --> 00:01:39,967
+changing source quotes or project state.
+
+40
+00:01:41,417 --> 00:01:44,063
+A separate read-only CockroachDB
+
+41
+00:01:44,063 --> 00:01:46,709
+Cloud Managed MCP connection audits the
+
+42
+00:01:46,709 --> 00:01:49,356
+same memory. This result shows the
+
+43
+00:01:49,356 --> 00:01:51,561
+successful agent run, the superseded
+
+44
+00:01:51,561 --> 00:01:53,766
+prior decision, the active replacement,
+
+45
+00:01:53,766 --> 00:01:56,412
+and their revision link without exposing
+
+46
+00:01:56,412 --> 00:01:58,177
+credentials or client text.
+
+47
+00:02:01,137 --> 00:02:03,842
+ScopeThread combines AWS execution with
+
+48
+00:02:03,842 --> 00:02:06,548
+CockroachDB relational and vector memory.
+
+49
+00:02:06,548 --> 00:02:09,253
+It helps creators never lose the
+
+50
+00:02:09,253 --> 00:02:11,057
+thread of client decisions.

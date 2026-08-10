@@ -1,6 +1,6 @@
 # ScopeThread Devpost Draft
 
-> Submission status: Draft only. Do not publish until every item in the final verification checklist is complete.
+> Submission status: Final draft. Do not publish until the remaining external-action checklist items receive explicit approval.
 
 ## Project tagline
 
@@ -35,6 +35,8 @@ It can:
 - expose an auditable agent-run record without logging client text or credentials.
 
 The core demo begins with an active decision that online booking is not needed. A later conversation requests a booking button on every page. ScopeThread retrieves the earlier decision, identifies the conflict, and asks whether the direction changed. When the creator confirms the revision, the old decision becomes `superseded`, the replacement becomes `active`, and CockroachDB retains the explicit `supersedes` link and its reason.
+
+The interface presents this choice as two direct actions: adopt the new direction or keep the current decision. The underlying conflict and dismissal records remain available for audit, while the user-facing language stays focused on the project decision being made.
 
 ### Why this is agentic memory
 
@@ -87,6 +89,8 @@ The first deployment bootstrap reached the IAM user's aggregate inline-policy si
 
 The Cohere embedding path required accepting the third-party model agreement before live inference. Nova 2 Lite initially returned zero-quota throttling, so we kept account activation separate from code completion and requested review through AWS Support. AWS approved the global cross-region inference profile on 2026-08-07, and the direct agent-memory E2E then completed live conflict detection and transactional memory persistence. The first public E2E exposed a different issue: generated output could still fail strict schema or grounding validation. ScopeThread rejected that output without partial memory, and we added bounded, cause-specific repair guidance without sending raw model output back into the repair prompt. After that repair was deployed, a second public run still failed at the validation boundary. A third run with allowlisted telemetry identified an unlinked conflict, so the host now links the conflict deterministically when exactly one extracted memory has a source quote copied from the conversation while continuing to reject ambiguous cases. The final deployed fix completed the public analysis and revision workflow, and a read-only CockroachDB query verified the persisted decision chain.
 
+Japanese output exposed one more reliability boundary: a fluent-looking model quote could still differ from the actual conversation. ScopeThread now gives Nova host-owned evidence IDs, resolves those IDs back to exact source text, performs one bounded review when a likely conflict is missing, and keeps every new decision proposed until explicit confirmation. Critical conflict explanation and confirmation copy is normalized by the host in English and Japanese, while the model still selects the grounded evidence and relationship.
+
 ### What we learned
 
 - Agentic memory needs explicit state transitions, not only better prompts.
@@ -108,8 +112,10 @@ The Cohere embedding path required accepting the third-party model agreement bef
 
 ### What's next
 
-- Deploy and verify the host-owned source-quote evidence fix.
-- Complete the final submission audit and publish the Devpost entry.
+- Add authenticated team workspaces while preserving the current project-isolation boundary.
+- Expand requirement and decision templates for more web-production workflows, including WordPress delivery constraints.
+- Evaluate additional languages with the same source-quote and terminology checks used for English and Japanese.
+- Add configurable retention and export controls for production client projects.
 
 ## Built with
 
@@ -163,11 +169,12 @@ The final English narration, on-screen actions, recording gate, and redaction re
 - [x] Confirm the public YouTube video URL is included in the submission links.
 - [x] Verify Nova live inference from `scopethread-dev`.
 - [x] Verify the live public E2E succeeds from the deployed stack.
-- [ ] Deploy commit `9cb3832` and verify the Japanese public analysis path.
+- [x] Deploy the bounded conflict-review and host-owned evidence fixes, then verify the Japanese public analysis path.
 - [x] Verify the MCP OAuth connection is single-cluster and read-only.
 - [x] Verify the final Managed MCP audit returns the successful public run, revision chain, and vector index without write operations or unexpected data exposure.
-- [ ] Confirm the video contains no account IDs, cluster IDs, tokens, credentials, or real client data.
-- [ ] Complete every final-take review item in `DEMO_VIDEO_SCRIPT.md`.
+- [x] Confirm the video contains no account IDs, cluster IDs, tokens, credentials, or real client data.
+- [x] Complete the final-take duration, behavior, redaction, and caption review in `DEMO_VIDEO_SCRIPT.md`.
 - [x] Confirm every accomplishment above has current evidence in `SUBMISSION_READINESS.md`.
 - [x] Re-read the current hackathon rules before submission.
-- [ ] Remove this draft warning only after all checks pass.
+- [ ] Revoke or disconnect the Managed MCP OAuth session after submission evidence no longer needs the live connection.
+- [ ] Remove this draft warning and submit only after explicit approval.
