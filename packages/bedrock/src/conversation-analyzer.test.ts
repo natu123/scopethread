@@ -223,12 +223,40 @@ describe("BedrockConversationAnalyzer", () => {
       JSON.stringify(modelResult()),
     ]);
 
-    const result = await analyzer.analyze(context);
+    const result = await analyzer.analyze({
+      ...context,
+      request: {
+        ...context.request,
+        conversationText: `${newStatement} Keep the existing contact form.`,
+      },
+    });
 
     expect(result.extractedMemories[0]?.sourceQuote).toBe(newStatement);
     expect(send.mock.calls[1]?.[0]?.input.system[0].text).toContain(
       "use a sourceQuoteId copied exactly from conversationEvidence",
     );
+  });
+
+  it("grounds one Japanese memory in the only available evidence", async () => {
+    const japaneseStatement =
+      "顧客は、訪問者が予約を申し込めるように、すべてのページへ予約ボタンを追加したいと希望しています。";
+    const japaneseResult = modelResult();
+    japaneseResult.extractedMemories[0]!.content = japaneseStatement;
+    japaneseResult.extractedMemories[0]!.sourceQuoteId = "invented-quote";
+    japaneseResult.conflicts[0]!.newStatement = japaneseStatement;
+    const { analyzer, send } = analyzerFor(japaneseResult);
+
+    const result = await analyzer.analyze({
+      ...context,
+      request: {
+        ...context.request,
+        conversationText: japaneseStatement,
+        locale: "ja",
+      },
+    });
+
+    expect(result.extractedMemories[0]?.sourceQuote).toBe(japaneseStatement);
+    expect(send).toHaveBeenCalledTimes(1);
   });
 
   it("replaces model-supplied quote text with host-owned evidence", async () => {

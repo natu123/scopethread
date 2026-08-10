@@ -125,22 +125,29 @@ function resolveConversationEvidence(
   }
 
   const quotesById = new Map(evidence.map(({ id, quote }) => [id, quote]));
+  const hasUnambiguousEvidence =
+    evidence.length === 1 && modelResult.extractedMemories.length === 1;
   const extractedMemories = modelResult.extractedMemories.map((memory) => {
-    if (!isRecord(memory) || typeof memory.sourceQuoteId !== "string") {
+    if (!isRecord(memory)) {
       throw new ModelOutputError(
         "unknown_conversation_evidence",
         "Bedrock omitted the conversation evidence ID for an extracted memory.",
       );
     }
-    const sourceQuote = quotesById.get(memory.sourceQuoteId);
-    if (!sourceQuote) {
+    const sourceQuote =
+      typeof memory.sourceQuoteId === "string"
+        ? quotesById.get(memory.sourceQuoteId)
+        : undefined;
+    const resolvedSourceQuote =
+      sourceQuote ?? (hasUnambiguousEvidence ? evidence[0]?.quote : undefined);
+    if (!resolvedSourceQuote) {
       throw new ModelOutputError(
         "unknown_conversation_evidence",
         "Bedrock cited an unknown conversation evidence ID.",
       );
     }
     const { sourceQuoteId: _sourceQuoteId, ...groundedMemory } = memory;
-    return { ...groundedMemory, sourceQuote };
+    return { ...groundedMemory, sourceQuote: resolvedSourceQuote };
   });
 
   return { ...modelResult, extractedMemories };
