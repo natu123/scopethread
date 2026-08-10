@@ -1,6 +1,6 @@
 # ScopeThread Devpost Draft
 
-> Submission status: Final draft. Do not publish until the remaining external-action checklist items receive explicit approval.
+> Submission status: Published on Devpost on 2026-08-10: https://devpost.com/software/scopethread
 
 ## Project tagline
 
@@ -192,19 +192,9 @@ The combination of relational transactions and vector search made it possible to
 - OpenAI Codex and ChatGPT for assisted development, diagnosis, review, and documentation.
 - Microsoft Clipchamp AI text-to-speech and automatic captions for the demo video.
 
-### Submitter confirmations still requiring the submitter
+### Submitter confirmations
 
-The following answers must be confirmed by the submitter and must not be inferred from repository data:
-
-- Submitter type.
-- Country of residence.
-- Organization name, if applicable.
-- Learning level.
-- Whether the project produced career-relevant AI value.
-- Sponsor, affiliate, and government-employee eligibility.
-- Eligible-jurisdiction confirmation.
-- Age-of-majority confirmation.
-- Agreement to the Official Rules and Devpost Terms of Service.
+The submitter completed the required personal, eligibility, learning, and rules confirmations directly in Devpost. This repository does not reproduce those personal responses.
 
 ## Video outline
 
@@ -237,4 +227,4 @@ The final English narration, on-screen actions, recording gate, and redaction re
 - [x] Confirm every accomplishment above has current evidence in `SUBMISSION_READINESS.md`.
 - [x] Re-read the current hackathon rules before submission.
 - [ ] Revoke or disconnect the Managed MCP OAuth session after submission evidence no longer needs the live connection.
-- [ ] Remove this draft warning and submit only after explicit approval.
+- [x] Publish the reviewed submission after explicit approval.

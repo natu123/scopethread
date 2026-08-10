@@ -205,7 +205,7 @@ Structured records remain authoritative. Vector similarity is used to find conte
 - [x] Deploy the functional demo on AWS.
 - [x] Verify security, observability, and failure handling.
 - [x] Record and publish a [public demo video](https://www.youtube.com/watch?v=T7881nwgDD0) under three minutes.
-- [ ] Complete the Devpost project story and submission checklist.
+- [x] Publish the completed [Devpost submission](https://devpost.com/software/scopethread).
 
 ## License
 

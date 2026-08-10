@@ -14,7 +14,7 @@ This document maps every MVP completion requirement to current evidence. `Prepar
 | Distributed Vector Indexing is exercised and visible | Live vector retrieval and `SHOW INDEXES` evidence for `memory_items_embedding_idx` | Live Cohere embedding retrieval and the project-prefixed vector index were verified and appear in the sanitized Managed MCP video evidence | Verified live | None |
 | Managed MCP inspects the same memory read-only | OAuth connection scoped to one cluster, read permission only, allowlisted audit query returns the public agent run and decision chain | Final audit verified a succeeded public run, the `superseded` and `active` decisions, their `supersedes` relation, and `memory_items_embedding_idx`; three `select_query` calls and one `show_statement` call were used with no writes, discovery, or unexpected data exposure | Verified live | Revoke or disconnect OAuth after submission evidence no longer needs the live connection |
 | Tests cover validation, isolation, conflict handling, and revisions | Passing automated suite whose assertions cover each behavior | The final documentation candidate passed `npm run check`: 101 tests across 12 files plus type, migration, infrastructure, repository-safety, history-safety, MCP-audit, and production-build checks; `npm run sam:check` also passed on 2026-08-10 | Verified locally | None |
-| Public repository is reproducible and contains no credentials | Clean public branch, setup/runbooks, tracked-file and full-history secret scans, ignored local secret files | GitHub reports `natu123/scopethread` as public with `main`, the MIT license, and the CloudFront homepage; repository and full-history safety checks pass | Verified public | Record the final documentation commit hash in the completion handoff |
+| Public repository is reproducible and contains no credentials | Clean public branch, setup/runbooks, tracked-file and full-history secret scans, ignored local secret files | GitHub reports `natu123/scopethread` as public with `main`, the MIT license, and the CloudFront homepage; repository and full-history safety checks pass | Verified public | None |
 | Public video demonstrates the memory flow in under three minutes | Public video URL and manual review against the storyboard and redaction checklist | The 2:14 English-narrated [YouTube demo](https://www.youtube.com/watch?v=T7881nwgDD0) shows the live workflow, persisted revision chain, English/Japanese interface, sanitized Managed MCP evidence, and architecture; the final 50-cue captions and all seven scene segments were reviewed on 2026-08-10 | Verified public | None |
 
 ## Supporting quality audit
@@ -29,14 +29,11 @@ This document maps every MVP completion requirement to current evidence. `Prepar
 | Cost control | Session allowance, API throttling, request limits, guarded paid scripts, and 14-day log retention are defined | Infrastructure and guarded paid public behavior are verified live |
 | Privacy | Demo copy and scripts use fictional data; repository scan checks common credential patterns | Verified locally and against the public video; only the allowlisted agent-run identifier is shown |
 
-## Remaining execution order
+## Submission status
 
-The application, Japanese public E2E, final UI refinements, public video, captions, and redaction review are complete. The remaining submission operations are:
+The application, Japanese public E2E, final UI refinements, public video, captions, redaction review, and Devpost submission are complete. The published project is available at https://devpost.com/software/scopethread.
 
-1. Commit and push this documentation refresh after the final checks pass.
-2. Copy the reviewed project story, tags, links, and media into Devpost and submit after explicit approval.
-3. Revoke or disconnect the Managed MCP OAuth session after submission evidence no longer needs the live connection.
-4. Keep the public repository, video, and live demo available through the judging period.
+The remaining post-submission operation is to revoke or disconnect the Managed MCP OAuth session, then keep the public repository, video, and live demo available through the judging period.
 
 ## Current execution gate
 
