@@ -103,6 +103,9 @@ describe("BedrockConversationAnalyzer", () => {
     expect(commandInput.system[0].text).toContain(
       "Write summary, content, rationale, explanation, confirmationQuestion, and nextQuestions in English.",
     );
+    expect(commandInput.system[0].text).toContain(
+      "Never restate retrievedMemories as new memories",
+    );
   });
 
   it("requests natural Japanese output while preserving source quotes", async () => {
@@ -197,6 +200,52 @@ describe("BedrockConversationAnalyzer", () => {
 
     expect(result.extractedMemories[0]?.status).toBe("proposed");
     expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("reviews a missing conflict once against an active decision", async () => {
+    const noConflict = modelResult({
+      conflicts: [],
+      retrievedEvidenceIds: [],
+    });
+    const { analyzer, send } = analyzerForResponses([
+      JSON.stringify(noConflict),
+      JSON.stringify(modelResult()),
+    ]);
+
+    const result = await analyzer.analyze(context);
+
+    expect(result.conflicts).toHaveLength(1);
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(send.mock.calls[1]?.[0]?.input.system[0].text).toContain(
+      "Re-evaluate the new conversation evidence against every retrieved active decision",
+    );
+  });
+
+  it("keeps a reviewed non-conflicting decision proposed", async () => {
+    const noConflict = modelResult({
+      extractedMemories: [
+        {
+          kind: "decision",
+          status: "active",
+          content: newStatement,
+          rationale: null,
+          sourceQuoteId: "conversation-quote-1",
+          confidence: 0.9,
+        },
+      ],
+      conflicts: [],
+      retrievedEvidenceIds: [],
+    });
+    const { analyzer, send } = analyzerForResponses([
+      JSON.stringify(noConflict),
+      JSON.stringify(noConflict),
+    ]);
+
+    const result = await analyzer.analyze(context);
+
+    expect(result.conflicts).toEqual([]);
+    expect(result.extractedMemories[0]?.status).toBe("proposed");
+    expect(send).toHaveBeenCalledTimes(2);
   });
 
   it("repairs a conflict linked to a non-decision memory kind", async () => {
