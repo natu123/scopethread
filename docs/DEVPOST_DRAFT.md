@@ -163,7 +163,7 @@ The final English narration, on-screen actions, recording gate, and redaction re
 - [x] Confirm the public YouTube video URL is included in the submission links.
 - [x] Verify Nova live inference from `scopethread-dev`.
 - [x] Verify the live public E2E succeeds from the deployed stack.
-- [ ] Deploy commit `472673a` and verify the Japanese public analysis path.
+- [ ] Deploy commit `fb66e5a` and verify the Japanese public analysis path.
 - [x] Verify the MCP OAuth connection is single-cluster and read-only.
 - [x] Verify the final Managed MCP audit returns the successful public run, revision chain, and vector index without write operations or unexpected data exposure.
 - [ ] Confirm the video contains no account IDs, cluster IDs, tokens, credentials, or real client data.
