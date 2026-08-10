@@ -13,6 +13,10 @@ import {
 describe("web localization", () => {
   it("keeps English as the primary hackathon language", () => {
     expect(copy.en.introTitle).toBe("Keep every client decision connected.");
+    expect(copy.en.nextQuestion).toBe("Confirmation needed");
+    expect(copy.en.emptyNextQuestion).toBe(
+      "A grounded confirmation prompt will appear here.",
+    );
     expect(analysesLeftLabel(1, "en")).toBe("1 analysis left");
     expect(analysesLeftLabel(3, "en")).toBe("3 analyses left");
     expect(groundedRecordsLabel(1, "en")).toContain("record.");
@@ -24,6 +28,10 @@ describe("web localization", () => {
       "顧客との意思決定を、",
       "すべてつなげて残す。",
     ]);
+    expect(copy.ja.nextQuestion).toBe("確認が必要です");
+    expect(copy.ja.emptyNextQuestion).toBe(
+      "根拠に基づく確認事項が、ここに表示されます。",
+    );
     expect(activeDecisionLabel(2, "ja")).toBe("有効な決定 2件");
     expect(memoryKindLabel("open_question", "ja")).toBe("未決事項");
     expect(memoryStatusLabel("superseded", "ja")).toBe("更新済み");
