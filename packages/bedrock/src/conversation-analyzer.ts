@@ -125,8 +125,7 @@ function resolveConversationEvidence(
   }
 
   const quotesById = new Map(evidence.map(({ id, quote }) => [id, quote]));
-  const hasUnambiguousEvidence =
-    evidence.length === 1 && modelResult.extractedMemories.length === 1;
+  const hasUnambiguousEvidence = evidence.length === 1;
   const extractedMemories = modelResult.extractedMemories.map((memory) => {
     if (!isRecord(memory)) {
       throw new ModelOutputError(

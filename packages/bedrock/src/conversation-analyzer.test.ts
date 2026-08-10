@@ -237,12 +237,20 @@ describe("BedrockConversationAnalyzer", () => {
     );
   });
 
-  it("grounds one Japanese memory in the only available evidence", async () => {
+  it("grounds Japanese memories in the only available evidence", async () => {
     const japaneseStatement =
       "顧客は、訪問者が予約を申し込めるように、すべてのページへ予約ボタンを追加したいと希望しています。";
     const japaneseResult = modelResult();
     japaneseResult.extractedMemories[0]!.content = japaneseStatement;
     japaneseResult.extractedMemories[0]!.sourceQuoteId = "invented-quote";
+    japaneseResult.extractedMemories.push({
+      kind: "open_question",
+      status: "proposed",
+      content: "予約導線の詳細を確認する必要があります。",
+      rationale: null,
+      sourceQuoteId: "another-invented-quote",
+      confidence: 0.8,
+    });
     japaneseResult.conflicts[0]!.newStatement = japaneseStatement;
     const { analyzer, send } = analyzerFor(japaneseResult);
 
@@ -256,6 +264,7 @@ describe("BedrockConversationAnalyzer", () => {
     });
 
     expect(result.extractedMemories[0]?.sourceQuote).toBe(japaneseStatement);
+    expect(result.extractedMemories[1]?.sourceQuote).toBe(japaneseStatement);
     expect(send).toHaveBeenCalledTimes(1);
   });
 
