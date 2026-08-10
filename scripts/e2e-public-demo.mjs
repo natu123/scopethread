@@ -59,7 +59,7 @@ async function jsonRequest(url, init = {}) {
 
 if (process.argv.includes("--help")) {
   console.log(`Usage:
-  npm run e2e:public-demo -- --stack-name scopethread --apply
+  npm run e2e:public-demo -- --stack-name scopethread [--locale en|ja] --apply
 
 Without --apply, no AWS or public HTTP request is made. With --apply, this
 command verifies the scoped AWS caller, reads the named stack outputs, and runs
@@ -70,6 +70,7 @@ the complete paid public demo scenario through CloudFront and API Gateway.`);
 const stackName = option("--stack-name");
 const profile = option("--profile") ?? process.env.AWS_PROFILE ?? expectedProfile;
 const region = option("--region") ?? process.env.AWS_REGION ?? expectedRegion;
+const locale = option("--locale") ?? "en";
 if (!stackName || !stackNamePattern.test(stackName)) {
   fail("Provide a valid CloudFormation stack name with --stack-name.");
 }
@@ -78,6 +79,9 @@ if (profile !== expectedProfile) {
 }
 if (region !== expectedRegion) {
   fail(`Public E2E is restricted to ${expectedRegion}.`);
+}
+if (locale !== "en" && locale !== "ja") {
+  fail("Public E2E locale must be en or ja.");
 }
 if (!shouldApply) {
   console.log(
@@ -164,6 +168,18 @@ try {
     throw new Error("The public demo session response is incomplete.");
   }
   const authorization = { authorization: `Bearer ${token}` };
+  const scenario = locale === "ja"
+    ? {
+        conversationText:
+          "顧客は、訪問者が予約を申し込めるように、すべてのページへ予約ボタンを追加したいと希望しています。",
+        reason: "顧客が公開範囲を見直し、オンライン予約を承認しました。",
+      }
+    : {
+        conversationText:
+          "The client has approved adding an online booking button to every page.",
+        reason:
+          "The client approved online booking after revising the launch scope.",
+      };
 
   const initialMemory = await jsonRequest(
     `${apiUrl}/memory?projectId=${encodeURIComponent(projectId)}`,
@@ -185,9 +201,9 @@ try {
     },
     body: JSON.stringify({
       projectId,
-      conversationText:
-        "The client has approved adding an online booking button to every page.",
+      conversationText: scenario.conversationText,
       idempotencyKey: `public-e2e-${randomUUID()}`,
+      locale,
     }),
   });
   const runId = analysis.payload?.runId;
@@ -202,8 +218,7 @@ try {
     throw new Error("The live agent did not ground the expected conflict.");
   }
 
-  const reason =
-    "The client approved online booking after revising the launch scope.";
+  const reason = scenario.reason;
   const revision = await jsonRequest(`${apiUrl}/revisions`, {
     method: "POST",
     headers: {
@@ -247,7 +262,7 @@ try {
   }
 
   console.log(
-    `Public demo E2E succeeded. Agent run ${runId} persisted a verified revision chain; no session token was printed.`,
+    `Public demo E2E (${locale}) succeeded. Agent run ${runId} persisted a verified revision chain; no session token was printed.`,
   );
 } catch (error) {
   const message = error instanceof Error ? error.message : "Unknown error";
