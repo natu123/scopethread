@@ -29,7 +29,7 @@ function modelResult(overrides: Record<string, unknown> = {}) {
         status: "proposed",
         content: newStatement,
         rationale: null,
-        sourceQuote: newStatement,
+        sourceQuoteId: "conversation-quote-1",
         confidence: 0.95,
       },
     ],
@@ -94,7 +94,9 @@ describe("BedrockConversationAnalyzer", () => {
       temperature: 0,
     });
     expect(JSON.parse(commandInput.messages[0].content[0].text)).toEqual({
-      conversation: newStatement,
+      conversationEvidence: [
+        { id: "conversation-quote-1", quote: newStatement },
+      ],
       responseLocale: "en",
       retrievedMemories: [priorMemory],
     });
@@ -104,11 +106,20 @@ describe("BedrockConversationAnalyzer", () => {
   });
 
   it("requests natural Japanese output while preserving source quotes", async () => {
-    const { analyzer, send } = analyzerFor(modelResult());
+    const japaneseStatement =
+      "顧客は、訪問者が予約を申し込めるように、すべてのページへ予約ボタンを追加したいと希望しています。";
+    const japaneseResult = modelResult();
+    japaneseResult.extractedMemories[0]!.content = japaneseStatement;
+    japaneseResult.conflicts[0]!.newStatement = japaneseStatement;
+    const { analyzer, send } = analyzerFor(japaneseResult);
 
-    await analyzer.analyze({
+    const result = await analyzer.analyze({
       ...context,
-      request: { ...context.request, locale: "ja" },
+      request: {
+        ...context.request,
+        conversationText: japaneseStatement,
+        locale: "ja",
+      },
     });
 
     const commandInput = send.mock.calls[0]?.[0]?.input;
@@ -117,7 +128,11 @@ describe("BedrockConversationAnalyzer", () => {
     );
     expect(JSON.parse(commandInput.messages[0].content[0].text)).toMatchObject({
       responseLocale: "ja",
+      conversationEvidence: [
+        { id: "conversation-quote-1", quote: japaneseStatement },
+      ],
     });
+    expect(result.extractedMemories[0]?.sourceQuote).toBe(japaneseStatement);
   });
 
   it.each([
@@ -200,10 +215,9 @@ describe("BedrockConversationAnalyzer", () => {
     );
   });
 
-  it("repairs a source quote that is not present in the conversation", async () => {
+  it("repairs an unknown conversation evidence ID", async () => {
     const ungrounded = modelResult();
-    ungrounded.extractedMemories[0]!.sourceQuote =
-      "A quote that was never supplied by the client.";
+    ungrounded.extractedMemories[0]!.sourceQuoteId = "invented-quote";
     const { analyzer, send } = analyzerForResponses([
       JSON.stringify(ungrounded),
       JSON.stringify(modelResult()),
@@ -213,8 +227,21 @@ describe("BedrockConversationAnalyzer", () => {
 
     expect(result.extractedMemories[0]?.sourceQuote).toBe(newStatement);
     expect(send.mock.calls[1]?.[0]?.input.system[0].text).toContain(
-      "copy sourceQuote exactly from a contiguous substring",
+      "use a sourceQuoteId copied exactly from conversationEvidence",
     );
+  });
+
+  it("replaces model-supplied quote text with host-owned evidence", async () => {
+    const forged = modelResult();
+    Object.assign(forged.extractedMemories[0]!, {
+      sourceQuote: "A quote that was never supplied by the client.",
+    });
+    const { analyzer, send } = analyzerFor(forged);
+
+    const result = await analyzer.analyze(context);
+
+    expect(result.extractedMemories[0]?.sourceQuote).toBe(newStatement);
+    expect(send).toHaveBeenCalledTimes(1);
   });
 
   it("repairs omitted conflict evidence with inclusion guidance", async () => {
@@ -292,7 +319,7 @@ describe("BedrockConversationAnalyzer", () => {
           status: "active",
           content: secondStatement,
           rationale: null,
-          sourceQuote: secondStatement,
+          sourceQuoteId: "conversation-quote-2",
           confidence: 0.9,
         },
       ],

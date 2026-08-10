@@ -55,6 +55,7 @@ const modelOutputIssues = new Set([
   "schema_mismatch",
   "unknown_evidence",
   "missing_evidence",
+  "unknown_conversation_evidence",
   "ungrounded_source_quote",
   "invalid_conflict_memory",
   "unlinked_conflict",
