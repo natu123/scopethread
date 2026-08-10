@@ -146,6 +146,66 @@ Suggested Devpost tags:
 - Public demo: [https://d2kn7tl59k7usc.cloudfront.net/](https://d2kn7tl59k7usc.cloudfront.net/)
 - Video demo: [https://www.youtube.com/watch?v=T7881nwgDD0](https://www.youtube.com/watch?v=T7881nwgDD0)
 
+## Additional info
+
+### Functional demo
+
+- URL: https://d2kn7tl59k7usc.cloudfront.net/
+- Testing credentials or instructions:
+
+  No credentials are required. The public demo uses fictional project data and issues a short-lived session automatically. Review the active decision, submit the prefilled later client request with **Analyze memory**, then either adopt the new direction with a reason or keep the current decision. Reload the page to verify that the revision history persists. The language switch can be used to repeat the analysis in natural Japanese.
+
+### Source and license
+
+- Public repository: https://github.com/natu123/scopethread
+- Open-source license: https://github.com/natu123/scopethread/blob/main/LICENSE
+
+### CockroachDB tools
+
+- Cloud Managed MCP Server.
+- Distributed Vector Indexing.
+
+### AWS services
+
+- Amazon Bedrock.
+- AWS Lambda.
+- Amazon S3.
+- Other AWS service: Amazon API Gateway, Amazon CloudFront, AWS Systems Manager Parameter Store, AWS CloudFormation, and AWS SAM.
+
+### Meaningful integration
+
+ScopeThread runs its public agent workflow in AWS Lambda behind API Gateway. Lambda calls Amazon Bedrock to create Cohere multilingual embeddings and to analyze grounded evidence with Amazon Nova 2 Lite. It stores conversations, structured decisions, exact source quotes, 1,024-dimension vectors, revision links, and agent-run telemetry in CockroachDB Cloud. CockroachDB Distributed Vector Indexing retrieves project-scoped related memories before analysis, while relational transactions preserve the authoritative decision state and revision chain. A separate single-cluster, OAuth, read-only CockroachDB Cloud Managed MCP connection audits the same successful agent run, decision chain, and vector index. Amazon S3 and CloudFront publish the browser application.
+
+### Project provenance
+
+- Project start date: `08-04-26`.
+- Pre-existing work:
+
+  No pre-existing ScopeThread application code was incorporated. The project was created during the submission period. It uses standard open-source frameworks and libraries, AWS SAM templates, vendor SDKs, and AI coding assistants as development tools. All project-specific requirements, domain models, database migrations, application code, infrastructure, tests, documentation, and demo materials were produced for this project during the submission period.
+
+### CockroachDB feedback
+
+The combination of relational transactions and vector search made it possible to keep the current decision authoritative without discarding semantic history. The Managed MCP Server was especially useful as a separate read-only audit path. Clearer visibility into OAuth cluster scope and authorization mode inside the connection UI would make security review easier, and a small set of documented agent-memory reference patterns would help teams move from a vector-search prototype to durable state transitions more quickly.
+
+### AI tools used
+
+- OpenAI Codex and ChatGPT for assisted development, diagnosis, review, and documentation.
+- Microsoft Clipchamp AI text-to-speech and automatic captions for the demo video.
+
+### Submitter confirmations still requiring the submitter
+
+The following answers must be confirmed by the submitter and must not be inferred from repository data:
+
+- Submitter type.
+- Country of residence.
+- Organization name, if applicable.
+- Learning level.
+- Whether the project produced career-relevant AI value.
+- Sponsor, affiliate, and government-employee eligibility.
+- Eligible-jurisdiction confirmation.
+- Age-of-majority confirmation.
+- Agreement to the Official Rules and Devpost Terms of Service.
+
 ## Video outline
 
 Published duration: 2 minutes 14 seconds.
