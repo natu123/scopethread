@@ -251,6 +251,8 @@ A pre-audit diagnostic tool output displayed the cluster ID once. It contained n
 
 After recording the demo, disconnect or revoke the MCP OAuth session from the client or CockroachDB Cloud. Never copy OAuth tokens into repository files, issue comments, screenshots, or the submission story.
 
+On 2026-08-10, after the Devpost submission was published and verified, the saved OAuth credentials for `cockroachdb-cloud-audit` were removed with the Codex MCP logout command. The server definition remains available for an intentional future reauthentication, but it no longer has saved credentials.
+
 ## References
 
 - [Connect to the CockroachDB Cloud MCP Server](https://www.cockroachlabs.com/docs/cockroachcloud/connect-to-the-cockroachdb-cloud-mcp-server)

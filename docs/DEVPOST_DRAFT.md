@@ -226,5 +226,5 @@ The final English narration, on-screen actions, recording gate, and redaction re
 - [x] Complete the final-take duration, behavior, redaction, and caption review in `DEMO_VIDEO_SCRIPT.md`.
 - [x] Confirm every accomplishment above has current evidence in `SUBMISSION_READINESS.md`.
 - [x] Re-read the current hackathon rules before submission.
-- [ ] Revoke or disconnect the Managed MCP OAuth session after submission evidence no longer needs the live connection.
+- [x] Remove the Managed MCP OAuth credentials after submission evidence no longer needs the live connection.
 - [x] Publish the reviewed submission after explicit approval.
